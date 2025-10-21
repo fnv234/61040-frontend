@@ -7,9 +7,7 @@ Emma is a graduate student who recently developed a love for matcha but struggle
 ## Link to screen recording
 
 
-[@demo](./demo_frontendcheckin.mov)
-
-
+[@demo](https://youtu.be/bo802nXH2Ts)
 
 
 
