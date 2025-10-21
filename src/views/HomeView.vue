@@ -335,7 +335,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { userDirectoryAPI, placeDirectoryAPI } from '@/services/api'
+import { userDirectoryAPI, placeDirectoryAPI, recommendationEngineAPI } from '@/services/api'
 import MapView from '@/components/MapView.vue'
 
 const router = useRouter()
@@ -485,7 +485,7 @@ const loadRecommendations = async () => {
   loadingRecommendations.value = true
   try {
     // Get recommendations from backend
-    const response = await userDirectoryAPI.getRecommendations(userStore.userId)
+    const response = await recommendationEngineAPI.getRecommendations(userStore.userId)
     if (response.recommendations && response.recommendations.length > 0) {
       const recDetailsPromises = response.recommendations.slice(0, 3).map(placeId => 
         placeDirectoryAPI.getDetails(placeId)

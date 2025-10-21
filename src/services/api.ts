@@ -110,13 +110,9 @@ export const experienceLogAPI = {
     }
   },
 
-  generateProfileSummary: async (userId: string, llm: Record<string, any>): Promise<GenerateProfileSummaryResponse> => {
-    try {
-      const response = await apiClient.post<GenerateProfileSummaryResponse>('/ExperienceLog/generate_profile_summary', { userId, llm })
-      return response.data
-    } catch (error) {
-      return handleError(error)
-    }
+  generateProfileSummary: async (userId: string): Promise<GenerateProfileSummaryResponse> => {
+    const response = await apiClient.post('/ExperienceLog/generate_profile_summary', { userId });
+    return response.data;
   }
 }
 
