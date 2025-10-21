@@ -5,9 +5,9 @@
         <div class="flex justify-between h-16">
           <div class="flex">
             <div class="flex-shrink-0 flex items-center">
-              <h1 class="text-2xl font-bold text-matcha-700">🍵 Matcha Tracker</h1>
+              <h1 class="text-2xl font-bold text-matcha-700">🍵 matchamatch</h1>
             </div>
-            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+            <div v-if="userStore.isLoggedIn" class="hidden sm:ml-6 sm:flex sm:space-x-8">
               <router-link
                 to="/"
                 class="border-transparent text-gray-500 hover:border-matcha-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
@@ -15,16 +15,10 @@
                 Home
               </router-link>
               <router-link
-                to="/places"
+                to="/collection"
                 class="border-transparent text-gray-500 hover:border-matcha-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
               >
-                Places
-              </router-link>
-              <router-link
-                to="/logs"
-                class="border-transparent text-gray-500 hover:border-matcha-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-              >
-                My Logs
+                Collection
               </router-link>
               <router-link
                 to="/profile"

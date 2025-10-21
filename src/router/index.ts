@@ -25,6 +25,11 @@ const router = createRouter({
       component: () => import('../views/PlaceDetailView.vue')
     },
     {
+      path: '/places/:id/log',
+      name: 'log-entry',
+      component: () => import('../views/LogEntryView.vue')
+    },
+    {
       path: '/logs',
       name: 'logs',
       component: () => import('../views/LogsView.vue')
@@ -33,6 +38,11 @@ const router = createRouter({
       path: '/profile',
       name: 'profile',
       component: () => import('../views/ProfileView.vue')
+    },
+    {
+      path: '/collection',
+      name: 'collection',
+      component: () => import('../views/CollectionView.vue')
     }
   ]
 })

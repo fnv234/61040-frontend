@@ -1,11 +1,11 @@
 <template>
   <div class="px-4 py-8">
-    <div class="text-center mb-12">
+    <div v-if="!userStore.isLoggedIn" class="text-center mb-12">
       <h1 class="text-4xl font-bold text-gray-900 mb-4">
-        Welcome to Matcha Tracker 🍵
+        Welcome to matchamatch 🍵
       </h1>
       <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-        Track your matcha experiences, discover new places, and find your perfect cup
+        Discover matcha places, track your experiences, and find your perfect cup
       </p>
     </div>
 
@@ -119,6 +119,59 @@
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-matcha-500 disabled:bg-gray-100"
           />
         </div>
+
+        <!-- Preference Sliders -->
+        <div class="pt-4 border-t">
+          <h3 class="text-sm font-medium text-gray-900 mb-3">Your Matcha Preferences</h3>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm text-gray-700 mb-2">
+                Sweetness Preference: <span class="font-medium">{{ signupForm.sweetness }}</span>
+              </label>
+              <input
+                v-model.number="signupForm.sweetness"
+                type="range"
+                min="1"
+                max="5"
+                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-matcha-600"
+              />
+              <div class="flex justify-between text-xs text-gray-500 mt-1">
+                <span>Not Sweet</span>
+                <span>Very Sweet</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm text-gray-700 mb-2">
+                Strength Preference: <span class="font-medium">{{ signupForm.strength }}</span>
+              </label>
+              <input
+                v-model.number="signupForm.strength"
+                type="range"
+                min="1"
+                max="5"
+                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-matcha-600"
+              />
+              <div class="flex justify-between text-xs text-gray-500 mt-1">
+                <span>Mild</span>
+                <span>Strong</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Location (Optional)</label>
+              <input
+                v-model="signupForm.location"
+                type="text"
+                placeholder="e.g., Boston, MA"
+                :disabled="isLoading"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-matcha-500 disabled:bg-gray-100"
+              />
+            </div>
+          </div>
+        </div>
+
         <button
           type="submit"
           :disabled="isLoading"
@@ -129,61 +182,157 @@
       </form>
     </div>
 
-    <div v-else class="space-y-6">
-      <!-- Map Section -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-2xl font-semibold text-gray-900">Discover Matcha Places Near You</h2>
-          <button
-            @click="getUserLocation"
-            class="px-4 py-2 bg-matcha-600 text-white rounded-md hover:bg-matcha-700 transition-colors text-sm"
-          >
-            📍 Use My Location
-          </button>
-        </div>
+    <div v-else class="space-y-4">
+      <!-- Top Bar with Profile Icon -->
+      <div class="flex items-center justify-between">
+        <router-link 
+          to="/profile" 
+          class="flex items-center space-x-2 text-gray-700 hover:text-matcha-600 transition-colors"
+        >
+          <div class="w-10 h-10 bg-matcha-100 rounded-full flex items-center justify-center">
+            <span class="text-xl">👤</span>
+          </div>
+          <span class="font-medium">{{ userStore.displayName }}</span>
+        </router-link>
         
-        <MapView 
-          :places="nearbyPlaces" 
-          :userLocation="userLocation"
-          @place-click="handlePlaceClick"
-        />
+        <button
+          @click="getUserLocation"
+          class="px-4 py-2 bg-matcha-600 text-white rounded-md hover:bg-matcha-700 transition-colors text-sm"
+        >
+          📍 Use My Location
+        </button>
       </div>
 
-      <!-- Quick Actions -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <router-link
-          to="/places"
-          class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
-        >
-          <div class="text-4xl mb-3">📍</div>
-          <h3 class="text-xl font-semibold mb-2">Explore Places</h3>
-          <p class="text-gray-600">Browse all matcha cafes and shops</p>
-        </router-link>
+      <!-- Search and Filter Bar -->
+      <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="flex gap-4">
+          <div class="flex-1">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search for matcha places..."
+              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-matcha-500"
+              @input="handleSearch"
+            />
+          </div>
+          <button
+            @click="showFilters = !showFilters"
+            class="px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors flex items-center gap-2"
+          >
+            <span>🔍 Filters</span>
+            <span class="text-sm">{{ showFilters ? '▲' : '▼' }}</span>
+          </button>
+        </div>
 
-        <router-link
-          to="/logs"
-          class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
-        >
-          <div class="text-4xl mb-3">📝</div>
-          <h3 class="text-xl font-semibold mb-2">My Logs</h3>
-          <p class="text-gray-600">View and manage your experiences</p>
-        </router-link>
+        <!-- Expandable Filters -->
+        <div v-if="showFilters" class="mt-4 pt-4 border-t grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+            <select
+              v-model="filterRating"
+              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-matcha-500"
+            >
+              <option value="">All Ratings</option>
+              <option value="4">4+ Stars</option>
+              <option value="3">3+ Stars</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Sweetness</label>
+            <select
+              v-model="filterSweetness"
+              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-matcha-500"
+            >
+              <option value="">All Sweetness</option>
+              <option value="1">Not Sweet</option>
+              <option value="2">Slightly Sweet</option>
+              <option value="3">Medium</option>
+              <option value="4">Sweet</option>
+              <option value="5">Very Sweet</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Style</label>
+            <select
+              v-model="filterStyle"
+              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-matcha-500"
+            >
+              <option value="">All Styles</option>
+              <option value="Ceremonial">Ceremonial</option>
+              <option value="Latte">Latte</option>
+              <option value="Iced">Iced</option>
+              <option value="Dessert">Dessert</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
-        <router-link
-          to="/profile"
-          class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
-        >
-          <div class="text-4xl mb-3">👤</div>
-          <h3 class="text-xl font-semibold mb-2">Profile</h3>
-          <p class="text-gray-600">See preferences and recommendations</p>
-        </router-link>
+      <!-- Main Content: Map + Sidebar -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- Map Section (2/3 width) -->
+        <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-4">
+          <MapView 
+            :places="filteredPlaces" 
+            :userLocation="userLocation"
+            @place-click="handlePlaceClick"
+          />
+        </div>
+
+        <!-- Sidebar: For You + Collection Button (1/3 width) -->
+        <div class="space-y-4">
+          <!-- For You Section -->
+          <div class="bg-white rounded-lg shadow-md p-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">✨ For You</h3>
+            
+            <!-- Loading State -->
+            <div v-if="loadingRecommendations" class="text-center py-8">
+              <div class="inline-block animate-bounce text-4xl mb-2">🍵</div>
+              <p class="text-sm text-gray-500">Brewing recommendations...</p>
+            </div>
+            
+            <!-- Empty State -->
+            <div v-else-if="recommendedPlaces.length === 0" class="text-center py-8 text-sm text-gray-500">
+              <div class="text-3xl mb-2">🌱</div>
+              <p>Add logs to get personalized recommendations!</p>
+            </div>
+            
+            <!-- Recommendations -->
+            <div v-else class="space-y-3">
+              <div
+                v-for="place in recommendedPlaces.slice(0, 3)"
+                :key="place._id"
+                @click="handlePlaceClick(place._id)"
+                class="p-3 border border-gray-200 rounded-md hover:border-matcha-500 cursor-pointer transition-colors"
+              >
+                <h4 class="font-medium text-gray-900">{{ place.name }}</h4>
+                <p class="text-xs text-gray-500 mt-1">{{ place.address }}</p>
+                <div class="flex items-center justify-between mt-2">
+                  <span class="text-xs text-matcha-600">{{ place.preparationStyles?.join(', ') }}</span>
+                  <span class="text-xs text-gray-500">{{ place.priceRange }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Collection Button -->
+          <router-link
+            to="/collection"
+            class="block bg-matcha-600 text-white rounded-lg shadow-md p-4 hover:bg-matcha-700 transition-colors text-center"
+          >
+            <div class="text-2xl mb-2">⭐</div>
+            <h3 class="text-lg font-semibold">Collection</h3>
+            <p class="text-sm opacity-90 mt-1">View saved places & logs</p>
+          </router-link>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { userDirectoryAPI, placeDirectoryAPI } from '@/services/api'
@@ -203,7 +352,10 @@ const signupForm = ref({
   displayName: '',
   email: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  sweetness: 3,
+  strength: 3,
+  location: ''
 })
 
 const isLoading = ref(false)
@@ -213,6 +365,16 @@ const successMessage = ref('')
 // Map-related state
 const nearbyPlaces = ref([])
 const userLocation = ref(null)
+const recommendedPlaces = ref([])
+const loadingRecommendations = ref(false)
+
+// Search and filter state
+const searchQuery = ref('')
+const filterRating = ref('')
+const filterSweetness = ref('')
+const filterStyle = ref('')
+const filteredPlaces = ref([])
+const showFilters = ref(false)
 
 // Get user's location
 const getUserLocation = () => {
@@ -236,12 +398,28 @@ const getUserLocation = () => {
   }
 }
 
+// Calculate distance between two coordinates in km
+const calculateDistance = (coords1, coords2) => {
+  const [lon1, lat1] = coords1
+  const [lon2, lat2] = coords2
+  
+  const R = 6371 // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
+
 // Load nearby places from API
 const loadNearbyPlaces = async () => {
   if (!userLocation.value) return
   
   try {
-    const response = await placeDirectoryAPI.findNearby(userLocation.value, 50000) // 50km radius to catch all sample places
+    const response = await placeDirectoryAPI.findNearby(userLocation.value, 100000) // Large radius to get all places
     
     // Fetch full details for each place ID
     if (response.placeIds && response.placeIds.length > 0) {
@@ -249,13 +427,80 @@ const loadNearbyPlaces = async () => {
         placeDirectoryAPI.getDetails(placeId)
       )
       const placeDetails = await Promise.all(placeDetailsPromises)
-      nearbyPlaces.value = placeDetails.map(detail => detail.place)
+      const allPlaces = placeDetails.map(detail => detail.place)
+      
+      // Filter to only show places within 50km (reasonable driving distance)
+      const nearbyFiltered = allPlaces.filter(place => {
+        const distance = calculateDistance(userLocation.value, place.coordinates)
+        return distance <= 50 // 50km max distance
+      })
+      
+      nearbyPlaces.value = nearbyFiltered
+      filteredPlaces.value = nearbyPlaces.value
+      loadRecommendations()
     } else {
       nearbyPlaces.value = []
+      filteredPlaces.value = []
     }
   } catch (error) {
     console.error('Error loading nearby places:', error)
     nearbyPlaces.value = []
+    filteredPlaces.value = []
+  }
+}
+
+// Handle search
+const handleSearch = () => {
+  applyFilters()
+}
+
+// Apply filters to places
+const applyFilters = () => {
+  let places = [...nearbyPlaces.value]
+  
+  // Search filter
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase()
+    places = places.filter(place => 
+      place.name.toLowerCase().includes(query) ||
+      place.address.toLowerCase().includes(query)
+    )
+  }
+  
+  // Style filter
+  if (filterStyle.value) {
+    places = places.filter(place => 
+      place.preparationStyles && place.preparationStyles.includes(filterStyle.value)
+    )
+  }
+  
+  // Note: Rating and sweetness filters would require log data
+  // For now, we'll just apply what we can
+  
+  filteredPlaces.value = places
+}
+
+// Load recommendations
+const loadRecommendations = async () => {
+  loadingRecommendations.value = true
+  try {
+    // Get recommendations from backend
+    const response = await userDirectoryAPI.getRecommendations(userStore.userId)
+    if (response.recommendations && response.recommendations.length > 0) {
+      const recDetailsPromises = response.recommendations.slice(0, 3).map(placeId => 
+        placeDirectoryAPI.getDetails(placeId)
+      )
+      const recDetails = await Promise.all(recDetailsPromises)
+      recommendedPlaces.value = recDetails.map(detail => detail.place)
+    } else {
+      // Fallback: show random places
+      recommendedPlaces.value = nearbyPlaces.value.slice(0, 3)
+    }
+  } catch (error) {
+    console.error('Error loading recommendations:', error)
+    recommendedPlaces.value = nearbyPlaces.value.slice(0, 3)
+  } finally {
+    loadingRecommendations.value = false
   }
 }
 
@@ -263,6 +508,11 @@ const loadNearbyPlaces = async () => {
 const handlePlaceClick = (placeId) => {
   router.push(`/places/${placeId}`)
 }
+
+// Watch filters for changes
+watch([filterRating, filterSweetness, filterStyle], () => {
+  applyFilters()
+})
 
 // Load places when user logs in
 onMounted(() => {
@@ -277,9 +527,9 @@ const getStoredAccounts = () => {
   return accounts ? JSON.parse(accounts) : {}
 }
 
-const saveAccount = (email, password, userId, displayName) => {
+const saveAccount = (email, password, userId, displayName, preferences = {}) => {
   const accounts = getStoredAccounts()
-  accounts[email] = { password, userId, displayName }
+  accounts[email] = { password, userId, displayName, preferences }
   localStorage.setItem('matcha_accounts', JSON.stringify(accounts))
 }
 
@@ -331,19 +581,31 @@ const handleSignup = async () => {
     // Generate userId
     const userId = `user_${Date.now()}`
     
-    // Register user in backend
+    // Register user in backend with preferences
     await userDirectoryAPI.registerUser({
       userId,
       displayName: signupForm.value.displayName,
       email: signupForm.value.email
     })
     
-    // Save credentials locally
+    // Update preferences in backend
+    await userDirectoryAPI.updatePreferences({
+      userId,
+      sweetness: signupForm.value.sweetness,
+      strength: signupForm.value.strength
+    })
+    
+    // Save credentials and preferences locally
     saveAccount(
       signupForm.value.email,
       signupForm.value.password,
       userId,
-      signupForm.value.displayName
+      signupForm.value.displayName,
+      {
+        sweetness: signupForm.value.sweetness,
+        strength: signupForm.value.strength,
+        location: signupForm.value.location
+      }
     )
     
     // Log in the user

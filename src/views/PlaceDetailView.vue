@@ -4,7 +4,7 @@
       @click="$router.back()"
       class="mb-4 text-matcha-600 hover:text-matcha-700 flex items-center"
     >
-      ← Back to Places
+      ← Back to Exploration
     </button>
 
     <div v-if="loading" class="text-center py-8">
@@ -16,16 +16,36 @@
     </div>
 
     <div v-else-if="place" class="bg-white rounded-lg shadow-md overflow-hidden">
-      <div v-if="place.photos && place.photos.length > 0" class="h-64 bg-gray-200">
-        <img :src="place.photos[0]" :alt="place.name" class="w-full h-full object-cover" />
-      </div>
-      <div v-else class="h-64 bg-matcha-100 flex items-center justify-center">
-        <span class="text-8xl">🍵</span>
-      </div>
-
       <div class="p-6">
-        <h1 class="text-3xl font-bold mb-4">{{ place.name }}</h1>
+        <!-- Name and Rating -->
+        <h1 class="text-3xl font-bold mb-2">{{ place.name }}</h1>
         
+        <!-- Star Rating -->
+        <div v-if="averageRating" class="flex items-center mb-4">
+          <div class="flex text-yellow-500 text-xl mr-2">
+            <span v-for="star in 5" :key="star">
+              {{ star <= Math.round(averageRating) ? '★' : '☆' }}
+            </span>
+          </div>
+          <span class="text-sm text-gray-600">{{ averageRating.toFixed(1) }}/5</span>
+        </div>
+
+        <!-- Save Button -->
+        <div v-if="userStore.isLoggedIn" class="mb-4">
+          <button
+            @click="toggleSave"
+            :class="[
+              'px-6 py-2 rounded-md transition-colors',
+              isSaved
+                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                : 'bg-matcha-600 text-white hover:bg-matcha-700'
+            ]"
+          >
+            {{ isSaved ? '❤️ Saved' : '🤍 Save Place' }}
+          </button>
+        </div>
+        
+        <!-- Address and Info -->
         <div class="space-y-3 mb-6">
           <div class="flex items-start">
             <span class="text-gray-500 w-24">Address:</span>
@@ -56,101 +76,88 @@
           </div>
         </div>
 
-        <div v-if="userStore.isLoggedIn" class="flex gap-4">
-          <button
-            @click="toggleSave"
-            :class="[
-              'px-6 py-2 rounded-md transition-colors',
-              isSaved
-                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                : 'bg-matcha-600 text-white hover:bg-matcha-700'
-            ]"
-          >
-            {{ isSaved ? '❤️ Saved' : '🤍 Save Place' }}
-          </button>
-          
-          <button
-            @click="showLogForm = true"
-            class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Add Experience Log
-          </button>
+        <!-- Photos Section (under name and info) -->
+        <div v-if="place.photos && place.photos.length > 0" class="mb-6">
+          <h3 class="text-lg font-semibold mb-3">Photos</h3>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <img
+              v-for="(photo, index) in place.photos"
+              :key="index"
+              :src="photo"
+              :alt="`${place.name} photo ${index + 1}`"
+              class="w-full h-40 object-cover rounded-lg"
+            />
+          </div>
         </div>
 
-        <!-- Log Form Modal -->
-        <div v-if="showLogForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 class="text-xl font-semibold mb-4">Log Your Experience</h3>
-            <form @submit.prevent="submitLog" class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Rating (1-5)
-                </label>
-                <input
-                  v-model.number="logForm.rating"
-                  type="number"
-                  min="1"
-                  max="5"
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
+        <!-- Sweetness and Strength Sliders -->
+        <div v-if="averageSweetness || averageStrength" class="border-t pt-6 mb-6">
+          <h3 class="text-lg font-semibold mb-4">Average Levels</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div v-if="averageSweetness">
+              <p class="text-sm text-gray-600 mb-2">Sweetness</p>
+              <div class="flex items-center">
+                <div class="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    class="h-full bg-matcha-600"
+                    :style="{ width: `${(averageSweetness / 5) * 100}%` }"
+                  ></div>
+                </div>
+                <span class="ml-3 font-medium">{{ averageSweetness.toFixed(1) }}/5</span>
+              </div>
+            </div>
+            
+            <div v-if="averageStrength">
+              <p class="text-sm text-gray-600 mb-2">Strength</p>
+              <div class="flex items-center">
+                <div class="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    class="h-full bg-matcha-600"
+                    :style="{ width: `${(averageStrength / 5) * 100}%` }"
+                  ></div>
+                </div>
+                <span class="ml-3 font-medium">{{ averageStrength.toFixed(1) }}/5</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Entries Section -->
+        <div class="mt-8 border-t pt-6">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Recent Experiences</h2>
+            <router-link
+              :to="`/places/${route.params.id}/log`"
+              class="text-matcha-600 hover:text-matcha-700 font-medium text-sm"
+            >
+              + ADD
+            </router-link>
+          </div>
+
+          <div v-if="placeLogs.length === 0" class="text-center py-8 text-gray-500">
+            No experiences logged yet. Be the first!
+          </div>
+
+          <div v-else class="space-y-4">
+            <div
+              v-for="log in placeLogs.slice(0, 5)"
+              :key="log._id"
+              class="border border-gray-200 rounded-lg p-4"
+            >
+              <div class="flex justify-between items-start mb-2">
+                <div class="flex items-center text-yellow-500">
+                  <span v-for="star in log.rating" :key="star">★</span>
+                  <span class="ml-2 text-sm text-gray-600">{{ formatDate(log.timestamp) }}</span>
+                </div>
               </div>
               
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Sweetness (1-5)
-                </label>
-                <input
-                  v-model.number="logForm.sweetness"
-                  type="number"
-                  min="1"
-                  max="5"
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
+              <p v-if="log.notes" class="text-sm text-gray-700 mb-2">{{ log.notes }}</p>
               
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Strength (1-5)
-                </label>
-                <input
-                  v-model.number="logForm.strength"
-                  type="number"
-                  min="1"
-                  max="5"
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
+              <div class="flex gap-4 text-xs text-gray-500">
+                <span>Sweetness: {{ log.sweetness }}/5</span>
+                <span>Strength: {{ log.strength }}/5</span>
               </div>
-              
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Notes (optional)
-                </label>
-                <textarea
-                  v-model="logForm.notes"
-                  rows="3"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                ></textarea>
-              </div>
-              
-              <div class="flex gap-3">
-                <button
-                  type="submit"
-                  class="flex-1 bg-matcha-600 text-white py-2 rounded-md hover:bg-matcha-700"
-                >
-                  Submit
-                </button>
-                <button
-                  type="button"
-                  @click="showLogForm = false"
-                  class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-md hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
       </div>
@@ -172,14 +179,10 @@ const place = ref(null)
 const loading = ref(false)
 const error = ref(null)
 const isSaved = ref(false)
-const showLogForm = ref(false)
-
-const logForm = ref({
-  rating: 3,
-  sweetness: 3,
-  strength: 3,
-  notes: ''
-})
+const placeLogs = ref([])
+const averageRating = ref(0)
+const averageSweetness = ref(0)
+const averageStrength = ref(0)
 
 const loadPlace = async () => {
   loading.value = true
@@ -191,15 +194,52 @@ const loadPlace = async () => {
     
     // Check if place is saved
     if (userStore.isLoggedIn) {
-      const savedPlaces = await userDirectoryAPI.getSavedPlaces(userStore.userId)
-      isSaved.value = savedPlaces.places.includes(route.params.id)
+      try {
+        const savedPlaces = await userDirectoryAPI.getSavedPlaces(userStore.userId)
+        isSaved.value = savedPlaces.places && savedPlaces.places.includes(route.params.id)
+      } catch (err) {
+        console.error('Error checking saved places:', err)
+        isSaved.value = false
+      }
     }
+
+    // Load logs for this place
+    await loadPlaceLogs()
   } catch (err) {
     error.value = err.message
     console.error('Error loading place:', err)
   } finally {
     loading.value = false
   }
+}
+
+const loadPlaceLogs = async () => {
+  try {
+    const response = await experienceLogAPI.getPlaceLogs(route.params.id)
+    if (response.logs && response.logs.length > 0) {
+      placeLogs.value = response.logs
+      
+      // Calculate averages
+      const totalRating = response.logs.reduce((sum, log) => sum + log.rating, 0)
+      const totalSweetness = response.logs.reduce((sum, log) => sum + log.sweetness, 0)
+      const totalStrength = response.logs.reduce((sum, log) => sum + log.strength, 0)
+      
+      averageRating.value = totalRating / response.logs.length
+      averageSweetness.value = totalSweetness / response.logs.length
+      averageStrength.value = totalStrength / response.logs.length
+    }
+  } catch (err) {
+    console.error('Error loading place logs:', err)
+  }
+}
+
+const formatDate = (timestamp) => {
+  const date = new Date(timestamp)
+  return date.toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric' 
+  })
 }
 
 const toggleSave = async () => {
@@ -210,29 +250,6 @@ const toggleSave = async () => {
     } else {
       await userDirectoryAPI.savePlace(userStore.userId, route.params.id)
       isSaved.value = true
-    }
-  } catch (err) {
-    alert('Error: ' + err.message)
-  }
-}
-
-const submitLog = async () => {
-  try {
-    await experienceLogAPI.createLog({
-      userId: userStore.userId,
-      placeId: route.params.id,
-      ...logForm.value
-    })
-    
-    showLogForm.value = false
-    alert('Experience logged successfully!')
-    
-    // Reset form
-    logForm.value = {
-      rating: 3,
-      sweetness: 3,
-      strength: 3,
-      notes: ''
     }
   } catch (err) {
     alert('Error: ' + err.message)
