@@ -272,9 +272,9 @@ const submitLog = async () => {
 
     successMessage.value = 'Experience logged successfully!'
     
-    // Redirect after short delay
+    // Redirect after short delay - use replace to avoid back button issues
     setTimeout(() => {
-      router.push(`/places/${placeId}`)
+      router.replace(`/places/${placeId}`)
     }, 1500)
 
   } catch (error: any) {

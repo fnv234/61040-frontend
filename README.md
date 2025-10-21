@@ -1,4 +1,21 @@
-# Matcha Tracker Frontend
+# matchamatch 
+
+## User Journey
+
+Emma is a graduate student who recently developed a love for matcha but struggles to find good places beyond the one cafe she knows, wanting to explore more options while avoiding disappointing experiences. She opens matchamatch after a friend's recommendation, creates an account, and sets her basic preferences for sweetness and strength levels that will help with personalized tracking and recommendations. After granting location access, Emma lands on the Home screen showing an interactive map with matcha place markers around her area, including several she's never heard of like "Matcha Cafe Maiko." She can filter by preparation styles like ceremonial or latte and see distances from her location. Tapping on Matcha Cafe Maiko's marker takes her to the Place Detail screen showing photos, hours, price range, and preparation styles offered - she taps "Save" to bookmark it for later, then explores and saves two more promising places the same way. The next week, Emma visits Matcha Cafe Maiko and tries their matcha latte. Impressed by the perfect froth and subtle sweetness, she opens the app and navigates to the Log Entry screen where she rates it 5 stars, adjusts sliders for sweetness and strength, adds notes about the "perfect froth texture and beautiful presentation," and uploads a photo of the aesthetic drink. Over the following weeks, Emma visits 4 more saved places, logging each experience immediately afterward through the same process. Her Collection screen now shows two organized sections: "Saved Places" (her future to-visit list) and "Logs" (her personal rating history with detailed notes). When she filters the logs for 4+ stars, she can quickly see her top discoveries. The "For You" section on the home page learns from her logged experiences and suggests new places matching her preferences. When Emma's parents visit, she opens her Collection, reviews her logged experiences, and confidently takes them to her highest-rated spot, explaining exactly why she chose it based on her logged notes about preparation quality and taste. matchamatch has transformed her from someone who knew one good place into a confident matcha explorer with a curated, searchable personal guide to her city's best options.
+
+## Link to screen recording
+
+
+[@demo](./demo_frontendcheckin.mov)
+
+
+
+
+
+
+
+# Frontend details 
 
 A Vue.js application for tracking matcha experiences, discovering new places, and getting personalized recommendations.
 

@@ -1,7 +1,7 @@
 <template>
   <div class="px-4 py-8">
     <button
-      @click="$router.back()"
+      @click="$router.push('/')"
       class="mb-4 text-matcha-600 hover:text-matcha-700 flex items-center"
     >
       ← Back to Exploration

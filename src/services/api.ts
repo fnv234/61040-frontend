@@ -229,12 +229,12 @@ export const userDirectoryAPI = {
 
   getSavedPlaces: async (userId: string): Promise<GetSavedPlacesResponse> => {
     try {
-      const response = await apiClient.post<GetSavedPlacesResponse>('/UserDirectory/_get_saved_places', { userId })
-      return response.data
+      const response = await apiClient.post<{ placeIds: string[] }>('/UserDirectory/_get_saved_places', { userId })
+      return { places: response.data.placeIds || [] }
     } catch (error) {
-      return handleError(error)
+      throw new Error('Failed to get saved places')
     }
-  }
+  },
 }
 
 // RecommendationEngine API
