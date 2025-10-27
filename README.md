@@ -13,8 +13,7 @@ Emma is a graduate student who recently developed a love for matcha but struggle
 
 ## Relative link to visual design study
 
-[@design-study](./6.1040%20A4b%20-%20Visual%20Design%20Study%20.pdf)
-OR Google slides link here: [@design-study-slides](https://docs.google.com/presentation/d/1_ppcmIyDooiewEgIWf2V7kTPgAQg78PMyLPqDTsHXYo/edit?usp=sharing)
+Google slides link here: [@design-study-slides](https://docs.google.com/presentation/d/1_ppcmIyDooiewEgIWf2V7kTPgAQg78PMyLPqDTsHXYo/edit?usp=sharing)
 
 
 # Frontend details 
