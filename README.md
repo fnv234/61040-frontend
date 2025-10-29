@@ -11,9 +11,13 @@ Emma is a graduate student who recently developed a love for matcha but struggle
 [@demo](https://youtu.be/bo802nXH2Ts)
 
 
-## Relative link to visual design study
+## Link to visual design study
 
 Google slides link here: [@design-study-slides](https://docs.google.com/presentation/d/1_ppcmIyDooiewEgIWf2V7kTPgAQg78PMyLPqDTsHXYo/edit?usp=sharing)
+
+
+
+colors = green-gray (B0BEA9), light dull green (92AA83), lighter dull green (E0EDC5), fern green (4B6E32), dark green (0A4421), super dark green (033316), green green (3F7131), cherry blossom pink (FCB2C5), darker light pink (F1A4B7), light red brown gray (6E5A5A), brown (4C3535), very light brown (BF9B9B), brighter green (65AE5B), jade (56A074), darker blue-green (48825F), green (549F3F)
 
 
 # Frontend details 

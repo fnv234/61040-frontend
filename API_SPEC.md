@@ -1,6 +1,6 @@
-# API Specification: Matcha Tracker Backend
+# API Specification: matchamatch Backend
 
-This document describes the REST API for the Matcha Tracker backend, which consists of four concepts: ExperienceLog, PlaceDirectory, UserDirectory, and RecommendationEngine.
+This document describes the REST API for the matchamatch backend, which consists of four concepts: ExperienceLog, PlaceDirectory, UserDirectory, and RecommendationEngine.
 
 **Base URL:** `http://localhost:8000/api`
 

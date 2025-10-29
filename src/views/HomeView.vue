@@ -1,11 +1,19 @@
 <template>
   <div class="px-4 py-8">
-    <div v-if="!userStore.isLoggedIn" class="text-center mb-12">
-      <h1 class="text-4xl font-bold text-gray-900 mb-4">
-        Welcome to matchamatch 🍵
+    <div v-if="!userStore.isLoggedIn" class="text-center mb-12 animate-fade-in-up">
+      <!-- Cute matcha image -->
+      <div class="mb-6 flex justify-center">
+        <img 
+          src="/src/assets/pics/matchavertical.jpeg" 
+          alt="Matcha" 
+          class="w-48 h-48 object-cover rounded-full shadow-lg hover-lift"
+        />
+      </div>
+      <h1 class="text-5xl font-decorative text-matcha-600 mb-4">
+        <span class="inline-block animate-float">🍵</span> Welcome to matchamatch
       </h1>
-      <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-        Discover matcha places, track your experiences, and find your perfect cup
+      <p class="text-xl text-light-red-brown-gray max-w-2xl mx-auto font-barlow">
+        Discover matcha places, track your experiences, and find your perfect cup ✨
       </p>
     </div>
 
@@ -69,7 +77,7 @@
         <button
           type="submit"
           :disabled="isLoading"
-          class="w-full bg-matcha-600 text-white py-2 px-4 rounded-md hover:bg-matcha-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+          class="w-full bg-brighter-green text-white py-2 px-4 rounded-lg hover:bg-matcha-green transition-all disabled:bg-gray-400 disabled:cursor-not-allowed font-medium btn-cute"
         >
           {{ isLoading ? 'Logging In...' : 'Log In' }}
         </button>
@@ -175,7 +183,7 @@
         <button
           type="submit"
           :disabled="isLoading"
-          class="w-full bg-matcha-600 text-white py-2 px-4 rounded-md hover:bg-matcha-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+          class="w-full bg-brighter-green text-white py-2 px-4 rounded-lg hover:bg-matcha-green transition-all disabled:bg-gray-400 disabled:cursor-not-allowed font-medium btn-cute"
         >
           {{ isLoading ? 'Creating Account...' : 'Create Account' }}
         </button>
@@ -197,7 +205,7 @@
         
         <button
           @click="getUserLocation"
-          class="px-4 py-2 bg-matcha-600 text-white rounded-md hover:bg-matcha-700 transition-colors text-sm"
+          class="px-4 py-2 bg-brighter-green text-white rounded-lg hover:bg-matcha-green transition-all text-sm font-medium btn-cute hover-grow"
         >
           📍 Use My Location
         </button>
@@ -283,19 +291,21 @@
         <!-- Sidebar: For You + Collection Button (1/3 width) -->
         <div class="space-y-4">
           <!-- For You Section -->
-          <div class="bg-white rounded-lg shadow-md p-4">
-            <h3 class="text-lg font-semibold text-gray-900 mb-3">✨ For You</h3>
+          <div class="bg-white rounded-lg shadow-md p-4 animate-fade-in-up hover-lift">
+            <h3 class="text-xl font-decorative text-matcha-600 mb-3">
+              <span class="inline-block animate-pulse-soft">✨</span> For You
+            </h3>
             
             <!-- Loading State -->
             <div v-if="loadingRecommendations" class="text-center py-8">
-              <div class="inline-block animate-bounce text-4xl mb-2">🍵</div>
-              <p class="text-sm text-gray-500">Brewing recommendations...</p>
+              <div class="inline-block animate-float text-4xl mb-2">🍵</div>
+              <p class="text-sm text-gray-500 font-decorative">Brewing recommendations...</p>
             </div>
             
             <!-- Empty State -->
             <div v-else-if="recommendedPlaces.length === 0" class="text-center py-8 text-sm text-gray-500">
-              <div class="text-3xl mb-2">🌱</div>
-              <p>Add logs to get personalized recommendations!</p>
+              <div class="text-3xl mb-2 animate-bounce-gentle">🌱</div>
+              <p class="font-decorative">Loading recommendations!...</p>
             </div>
             
             <!-- Recommendations -->
@@ -304,7 +314,7 @@
                 v-for="place in recommendedPlaces.slice(0, 3)"
                 :key="place._id"
                 @click="handlePlaceClick(place._id)"
-                class="p-3 border border-gray-200 rounded-md hover:border-matcha-500 cursor-pointer transition-colors"
+                class="p-3 border-2 border-green-gray rounded-lg hover:border-brighter-green cursor-pointer transition-all hover-lift"
               >
                 <h4 class="font-medium text-gray-900">{{ place.name }}</h4>
                 <p class="text-xs text-gray-500 mt-1">{{ place.address }}</p>
@@ -319,11 +329,11 @@
           <!-- Collection Button -->
           <router-link
             to="/collection"
-            class="block bg-matcha-600 text-white rounded-lg shadow-md p-4 hover:bg-matcha-700 transition-colors text-center"
+            class="block bg-gradient-to-br from-brighter-green to-matcha-green text-white rounded-lg shadow-md p-4 hover:shadow-xl transition-all text-center btn-cute hover-lift overflow-hidden relative"
           >
-            <div class="text-2xl mb-2">⭐</div>
-            <h3 class="text-lg font-semibold">Collection</h3>
-            <p class="text-sm opacity-90 mt-1">View saved places & logs</p>
+            <div class="text-2xl mb-2 animate-bounce-gentle relative z-10">⭐</div>
+            <h3 class="text-lg font-semibold relative z-10">Collection</h3>
+            <p class="text-sm opacity-90 mt-1 relative z-10">View saved places & logs</p>
           </router-link>
         </div>
       </div>

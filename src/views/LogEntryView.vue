@@ -7,9 +7,20 @@
       ← Back
     </button>
 
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <h1 class="text-2xl font-bold text-gray-900 mb-2">Add Experience Log</h1>
-      <p v-if="placeName" class="text-gray-600 mb-6">{{ placeName }}</p>
+    <div class="bg-white rounded-lg shadow-md p-6 animate-fade-in-up hover-lift">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h1 class="text-3xl font-decorative text-matcha-600 mb-2">
+            <span class="inline-block animate-bounce-gentle">✨</span> Add Experience Log
+          </h1>
+          <p v-if="placeName" class="text-lg text-dark-green font-medium">{{ placeName }}</p>
+        </div>
+        <img 
+          src="/src/assets/pics/butterfly.jpeg" 
+          alt="Matcha" 
+          class="w-24 h-24 object-cover rounded-full shadow-md animate-pulse-soft hidden md:block"
+        />
+      </div>
 
       <form @submit.prevent="submitLog" class="space-y-6">
         <!-- Star Rating -->
@@ -158,14 +169,14 @@
           <button
             type="submit"
             :disabled="isLoading"
-            class="flex-1 bg-matcha-600 text-white py-3 px-6 rounded-md hover:bg-matcha-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+            class="flex-1 bg-brighter-green text-white py-3 px-6 rounded-lg hover:bg-matcha-green transition-all disabled:bg-gray-400 disabled:cursor-not-allowed font-medium btn-cute"
           >
-            {{ isLoading ? 'Saving...' : 'Save Log' }}
+            {{ isLoading ? 'Saving...' : '✨ Save Log' }}
           </button>
           <button
             type="button"
             @click="$router.back()"
-            class="px-6 py-3 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors font-medium"
+            class="px-6 py-3 border-2 border-cherry-blossom text-brown rounded-lg hover:bg-cherry-blossom transition-all font-medium hover-grow"
           >
             Cancel
           </button>
@@ -179,7 +190,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { experienceLogAPI, placeDirectoryAPI } from '@/services/api'
+import { experienceLogAPI, placeDirectoryAPI, recommendationEngineAPI, userDirectoryAPI } from '@/services/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -269,6 +280,22 @@ const submitLog = async () => {
       notes: logForm.value.notes || undefined,
       photos
     })
+
+    // Refresh recommendations after creating a log
+    try {
+      const savedResult = await userDirectoryAPI.getSavedPlaces(userStore.userId)
+      const triedResult = await experienceLogAPI.getTriedPlaces(userStore.userId)
+      
+      await recommendationEngineAPI.refreshRecommendations({
+        userId: userStore.userId,
+        savedPlaces: savedResult.places || [],
+        preferences: {},
+        triedPlaces: triedResult.places || []
+      })
+    } catch (recError) {
+      console.error('Error refreshing recommendations:', recError)
+      // Don't fail the whole operation if recommendation refresh fails
+    }
 
     successMessage.value = 'Experience logged successfully!'
     

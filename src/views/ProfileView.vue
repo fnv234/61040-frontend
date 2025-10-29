@@ -1,6 +1,8 @@
 <template>
   <div class="px-4 py-8">
-    <h1 class="text-3xl font-bold text-gray-900 mb-6">My Profile</h1>
+    <h1 class="text-4xl font-decorative text-matcha-600 mb-6 animate-fade-in-up">
+      <span class="inline-block animate-bounce-gentle">👤</span> My Profile
+    </h1>
 
     <div v-if="!userStore.isLoggedIn" class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
       <p class="text-yellow-800">Please log in to view your profile.</p>
@@ -8,8 +10,8 @@
 
     <div v-else class="space-y-6">
       <!-- User Info -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-semibold mb-4">Account Information</h2>
+      <div class="bg-white rounded-lg shadow-md p-6 hover-lift animate-fade-in-up">
+        <h2 class="text-xl font-semibold mb-4 text-dark-green">Account Information</h2>
         <div class="space-y-2">
           <div>
             <span class="text-gray-500">Display Name:</span>
@@ -22,18 +24,28 @@
         </div>
         <button
           @click="userStore.logout()"
-          class="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          class="mt-4 px-4 py-2 bg-cherry-blossom text-brown rounded-lg hover:bg-darker-light-pink transition-all font-medium btn-cute hover-grow"
         >
-          Logout
+          🚪 Logout
         </button>
       </div>
 
       <!-- Saved Places -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-semibold mb-4">Saved Places</h2>
-        <div v-if="loadingSaved" class="text-gray-600">Loading...</div>
-        <div v-else-if="savedPlaces.length === 0" class="text-gray-600">
-          No saved places yet.
+      <div class="bg-white rounded-lg shadow-md p-6 hover-lift animate-fade-in-up">
+        <h2 class="text-xl font-semibold mb-4 text-dark-green">
+          <span class="inline-block animate-pulse-soft">⭐</span> Saved Places
+        </h2>
+        <div v-if="loadingSaved" class="text-center py-4">
+          <div class="inline-block animate-float text-4xl mb-2">🍵</div>
+          <p class="text-sm text-gray-500 font-decorative">Loading...</p>
+        </div>
+        <div v-else-if="savedPlaces.length === 0" class="text-center py-8">
+          <img 
+            src="/src/assets/pics/matchavertical.jpeg" 
+            alt="Matcha" 
+            class="w-32 h-32 object-cover rounded-full mx-auto mb-4 shadow-md animate-float"
+          />
+          <p class="text-gray-600 font-decorative text-lg">No saved places yet</p>
         </div>
         <div v-else class="space-y-2">
           <div
@@ -47,7 +59,7 @@
             </div>
             <router-link
               :to="`/places/${place._id}`"
-              class="text-matcha-600 hover:text-matcha-700"
+              class="px-3 py-1 bg-brighter-green text-white rounded-lg hover:bg-matcha-green transition-all text-sm font-medium btn-cute"
             >
               View →
             </router-link>
@@ -56,19 +68,30 @@
       </div>
 
       <!-- Recommendations -->
-      <div class="bg-white rounded-lg shadow-md p-6">
+      <div class="bg-white rounded-lg shadow-md p-6 hover-lift animate-fade-in-up">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-semibold">Recommendations</h2>
+          <h2 class="text-xl font-semibold text-dark-green">
+            <span class="inline-block animate-pulse-soft">✨</span> Recommendations
+          </h2>
           <button
             @click="refreshRecommendations"
-            class="px-4 py-2 bg-matcha-600 text-white rounded-md hover:bg-matcha-700 text-sm"
+            class="px-4 py-2 bg-brighter-green text-white rounded-lg hover:bg-matcha-green text-sm font-medium btn-cute hover-grow"
           >
-            Refresh
+            🔄 Refresh
           </button>
         </div>
-        <div v-if="loadingRecs" class="text-gray-600">Loading...</div>
-        <div v-else-if="recommendations.length === 0" class="text-gray-600">
-          No recommendations available. Try logging some experiences!
+        <div v-if="loadingRecs" class="text-center py-4">
+          <div class="inline-block animate-float text-4xl mb-2">🍵</div>
+          <p class="text-sm text-gray-500 font-decorative">Brewing recommendations...</p>
+        </div>
+        <div v-else-if="recommendations.length === 0" class="text-center py-8">
+          <img 
+            src="/src/assets/pics/matchavertical.jpeg" 
+            alt="Matcha" 
+            class="w-32 h-32 object-cover rounded-full mx-auto mb-4 shadow-md animate-bounce-gentle"
+          />
+          <p class="text-gray-600 font-decorative text-lg">No recommendations available</p>
+          <p class="text-sm text-gray-500 mt-2">Try logging some experiences!</p>
         </div>
         <div v-else class="space-y-2">
           <div
@@ -82,7 +105,7 @@
             </div>
             <router-link
               :to="`/places/${place._id}`"
-              class="text-matcha-600 hover:text-matcha-700"
+              class="px-3 py-1 bg-brighter-green text-white rounded-lg hover:bg-matcha-green transition-all text-sm font-medium btn-cute"
             >
               View →
             </router-link>
@@ -91,22 +114,32 @@
       </div>
 
       <!-- Profile Summary -->
-      <div class="bg-white rounded-lg shadow-md p-6">
+      <div class="bg-white rounded-lg shadow-md p-6 hover-lift animate-fade-in-up">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-semibold">My Matcha Profile</h2>
+          <h2 class="text-xl font-semibold text-dark-green">
+            <span class="inline-block animate-pulse-soft">🍵</span> My Matcha Profile
+          </h2>
           <button
             @click="generateSummary"
-            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+            class="px-4 py-2 bg-jade text-white rounded-lg hover:bg-darker-blue-green text-sm font-medium btn-cute hover-grow"
           >
-            Generate Summary
+            ✨ Generate Summary
           </button>
         </div>
-        <div v-if="loadingSummary" class="text-gray-600">Generating...</div>
-        <div v-else-if="profileSummary" class="text-gray-700">
-          {{ profileSummary }}
+        <div v-if="loadingSummary" class="text-center py-4">
+          <div class="inline-block animate-float text-4xl mb-2">🍵</div>
+          <p class="text-sm text-gray-500 font-decorative">Generating your matcha profile...</p>
         </div>
-        <div v-else class="text-gray-500 italic">
-          Generate an AI-powered summary of your matcha preferences based on your experience logs.
+        <div v-else-if="profileSummary" class="bg-lighter-dull-green p-4 rounded-lg border-2 border-green-gray">
+          <p class="text-dark-green leading-relaxed">{{ profileSummary }}</p>
+        </div>
+        <div v-else class="text-center py-8">
+          <img 
+            src="/src/assets/pics/matchavertical.jpeg" 
+            alt="Matcha" 
+            class="w-32 h-32 object-cover rounded-full mx-auto mb-4 shadow-md animate-pulse-soft"
+          />
+          <p class="text-gray-500 italic font-decorative">Generate an AI-powered summary of your matcha preferences!</p>
         </div>
       </div>
     </div>
@@ -163,9 +196,31 @@ const loadRecommendations = async () => {
         result.recommendations.map(placeId => placeDirectoryAPI.getDetails(placeId))
       )
       recommendations.value = placeDetails.map(detail => detail.place)
+    } else {
+      // Fallback: Show some nearby places if no recommendations
+      console.log('No recommendations from backend, showing nearby places as fallback')
+      const nearbyResult = await placeDirectoryAPI.findNearby([-71.0942, 42.3601], 50000)
+      if (nearbyResult.placeIds && nearbyResult.placeIds.length > 0) {
+        const placeDetails = await Promise.all(
+          nearbyResult.placeIds.slice(0, 5).map(placeId => placeDirectoryAPI.getDetails(placeId))
+        )
+        recommendations.value = placeDetails.map(detail => detail.place)
+      }
     }
   } catch (err) {
     console.error('Error loading recommendations:', err)
+    // Even on error, try to show some places
+    try {
+      const nearbyResult = await placeDirectoryAPI.findNearby([-71.0942, 42.3601], 50000)
+      if (nearbyResult.placeIds && nearbyResult.placeIds.length > 0) {
+        const placeDetails = await Promise.all(
+          nearbyResult.placeIds.slice(0, 5).map(placeId => placeDirectoryAPI.getDetails(placeId))
+        )
+        recommendations.value = placeDetails.map(detail => detail.place)
+      }
+    } catch (fallbackErr) {
+      console.error('Error loading fallback places:', fallbackErr)
+    }
   } finally {
     loadingRecs.value = false
   }
@@ -200,8 +255,20 @@ const generateSummary = async () => {
   
   loadingSummary.value = true
   try {
-    const result = await experienceLogAPI.generateProfileSummary(userStore.userId, {})
-    profileSummary.value = result.summary
+    const result = await experienceLogAPI.generateProfileSummary(userStore.userId)
+    
+    // Clean up the summary by removing UUID place IDs
+    let cleanedSummary = result.summary
+    
+    // Remove UUID patterns (e.g., 493d469f-4402-4024-956c-d5b0d649b06c)
+    cleanedSummary = cleanedSummary.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, 'various locations')
+    
+    // Clean up awkward phrasing that results from ID removal
+    cleanedSummary = cleanedSummary.replace(/at various locations/gi, 'at different matcha spots')
+    cleanedSummary = cleanedSummary.replace(/experience at various locations/gi, 'experiences')
+    cleanedSummary = cleanedSummary.replace(/tasting experience at various locations/gi, 'tastings')
+    
+    profileSummary.value = cleanedSummary
   } catch (err) {
     alert('Error: ' + err.message)
   } finally {

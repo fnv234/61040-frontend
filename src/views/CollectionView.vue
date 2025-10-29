@@ -1,6 +1,16 @@
 <template>
   <div class="px-4 py-8">
-    <h1 class="text-3xl font-bold text-gray-900 mb-6">⭐ My Collection</h1>
+    <!-- Decorative header with image -->
+    <div class="flex items-center justify-between mb-6 animate-fade-in-up">
+      <h1 class="text-4xl font-decorative text-matcha-600">
+        <span class="inline-block animate-bounce-gentle">⭐</span> My Collection
+      </h1>
+      <img 
+        src="/src/assets/pics/matchavertical.jpeg" 
+        alt="Matcha branding" 
+        class="w-20 h-20 object-cover rounded-full shadow-lg animate-float"
+      />
+    </div>
 
     <!-- Toggle between Saved Places and Logs -->
     <div class="flex border-b mb-6">
@@ -52,32 +62,35 @@
 
     <!-- Saved Places View -->
     <div v-if="activeView === 'places'">
-      <div v-if="loading" class="text-center py-8">
-        <p class="text-gray-600">Loading saved places...</p>
-      </div>
-      
-      <div v-else-if="filteredSavedPlaces.length === 0" class="text-center py-12">
-        <p class="text-gray-600 mb-4">No saved places yet</p>
-        <router-link to="/" class="text-matcha-600 hover:text-matcha-700 font-medium">
-          Discover places to save
+      <div v-if="loading" class="text-center py-8 text-gray-600">Loading...</div>
+      <div v-else-if="filteredSavedPlaces.length === 0" class="text-center py-8 animate-fade-in-up">
+          <img 
+            src="/src/assets/pics/matchavertical.jpeg" 
+            alt="Matcha" 
+            class="w-48 h-48 object-cover rounded-lg mx-auto mb-4 shadow-lg animate-float"
+          />
+        <p class="text-gray-600 font-decorative text-lg">No saved places yet</p>
+        <p class="text-sm text-gray-500 mt-2">Start exploring and save your favorites!</p>
+        <router-link to="/" class="text-matcha-600 hover:text-matcha-700 font-medium hover-grow inline-block">
+          Discover places to save ✨
         </router-link>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div
-          v-for="place in filteredSavedPlaces"
+          v-for="(place, index) in filteredSavedPlaces"
           :key="place._id"
-          class="bg-white rounded-lg shadow-md overflow-hidden"
+          class="bg-white rounded-lg shadow-md overflow-hidden hover-lift stagger-item"
         >
           <div v-if="place.photos && place.photos.length > 0" class="h-40 bg-gray-200">
             <img :src="place.photos[0]" :alt="place.name" class="w-full h-full object-cover" />
           </div>
           <div v-else class="h-40 bg-matcha-100 flex items-center justify-center">
-            <span class="text-5xl">🍵</span>
+            <span class="text-5xl animate-pulse-soft">🍵</span>
           </div>
           
           <div class="p-4">
-            <h3 class="text-lg font-semibold mb-2">{{ place.name }}</h3>
+            <h3 class="text-lg font-semibold mb-2 text-dark-green">{{ place.name }}</h3>
             <p class="text-sm text-gray-600 mb-3">{{ place.address }}</p>
             <div class="flex items-center justify-between text-sm mb-3">
               <span class="text-gray-500">{{ place.priceRange }}</span>
@@ -87,15 +100,15 @@
             <div class="flex gap-2">
               <button
                 @click="removeSavedPlace(place._id)"
-                class="flex-1 px-3 py-2 border border-red-300 text-red-600 rounded-md hover:bg-red-50 transition-colors text-sm font-medium"
+                class="flex-1 px-3 py-2 border-2 border-cherry-blossom text-brown rounded-lg hover:bg-cherry-blossom transition-all text-sm font-medium hover-grow"
               >
-                Delete
+                🗑️ Delete
               </button>
               <button
                 @click="addLogForPlace(place._id)"
-                class="flex-1 px-3 py-2 bg-matcha-600 text-white rounded-md hover:bg-matcha-700 transition-colors text-sm font-medium"
+                class="flex-1 px-3 py-2 bg-brighter-green text-white rounded-lg hover:bg-matcha-green transition-all text-sm font-medium btn-cute"
               >
-                + Add Log
+                ✨ Add Log
               </button>
             </div>
           </div>
@@ -105,26 +118,29 @@
 
     <!-- Logs View -->
     <div v-else>
-      <div v-if="loading" class="text-center py-8">
-        <p class="text-gray-600">Loading logs...</p>
-      </div>
-      
-      <div v-else-if="filteredLogs.length === 0" class="text-center py-12">
-        <p class="text-gray-600 mb-4">No logs yet</p>
-        <router-link to="/" class="text-matcha-600 hover:text-matcha-700 font-medium">
-          Visit a place and add your first log
+      <div v-if="loading" class="text-center py-8 text-gray-600">Loading...</div>
+      <div v-else-if="filteredLogs.length === 0" class="text-center py-8 animate-fade-in-up">
+          <img 
+            src="/src/assets/pics/matchavertical.jpeg" 
+            alt="Matcha" 
+            class="w-48 h-48 object-cover rounded-lg mx-auto mb-4 shadow-lg animate-bounce-gentle"
+          />
+        <p class="text-gray-600 font-decorative text-lg">No logs yet</p>
+        <p class="text-sm text-gray-500 mt-2">Create your first matcha experience log!</p>
+        <router-link to="/" class="text-matcha-600 hover:text-matcha-700 font-medium hover-grow inline-block">
+          Visit a place and add your first log ✨
         </router-link>
       </div>
 
       <div v-else class="space-y-4">
         <div
-          v-for="log in filteredLogs"
+          v-for="(log, index) in filteredLogs"
           :key="log._id"
-          class="bg-white rounded-lg shadow-md p-6"
+          class="bg-white rounded-lg shadow-md p-6 hover-lift stagger-item"
         >
           <div class="flex justify-between items-start mb-3">
             <div>
-              <h3 class="text-lg font-semibold text-gray-900">{{ log.placeName }}</h3>
+              <h3 class="text-lg font-semibold text-dark-green">{{ log.placeName }}</h3>
               <p class="text-sm text-gray-500">{{ formatDate(log.timestamp) }}</p>
             </div>
             <div class="flex items-center">
@@ -174,9 +190,9 @@
 
           <button
             @click="deleteLog(log._id)"
-            class="mt-3 text-sm text-red-600 hover:text-red-700 font-medium"
+            class="mt-3 px-4 py-2 text-sm bg-cherry-blossom text-brown rounded-lg hover:bg-darker-light-pink font-medium transition-all hover-grow"
           >
-            Delete Log
+            🗑️ Delete Log
           </button>
         </div>
       </div>
@@ -188,7 +204,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { userDirectoryAPI, experienceLogAPI, placeDirectoryAPI } from '@/services/api'
+import { userDirectoryAPI, experienceLogAPI, placeDirectoryAPI, recommendationEngineAPI } from '@/services/api'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -308,8 +324,26 @@ const deleteLog = async (logId: string) => {
   if (!confirm('Delete this log?')) return
   
   try {
-    await experienceLogAPI.deleteLog(userStore.userId, logId)
+    await experienceLogAPI.deleteLog(logId)
     logs.value = logs.value.filter(l => l._id !== logId)
+    
+    // Refresh recommendations after deleting a log
+    if (userStore.userId) {
+      try {
+        const savedResult = await userDirectoryAPI.getSavedPlaces(userStore.userId)
+        const triedResult = await experienceLogAPI.getTriedPlaces(userStore.userId)
+        
+        await recommendationEngineAPI.refreshRecommendations({
+          userId: userStore.userId,
+          savedPlaces: savedResult.places || [],
+          preferences: {},
+          triedPlaces: triedResult.places || []
+        })
+      } catch (recError) {
+        console.error('Error refreshing recommendations:', recError)
+        // Don't fail the whole operation if recommendation refresh fails
+      }
+    }
   } catch (error) {
     console.error('Error deleting log:', error)
     alert('Failed to delete log')
