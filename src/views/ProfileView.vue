@@ -257,16 +257,40 @@ const generateSummary = async () => {
   try {
     const result = await experienceLogAPI.generateProfileSummary(userStore.userId)
     
-    // Clean up the summary by removing UUID place IDs
+    // Clean up the summary by replacing UUID place IDs with actual place names
     let cleanedSummary = result.summary
     
-    // Remove UUID patterns (e.g., 493d469f-4402-4024-956c-d5b0d649b06c)
-    cleanedSummary = cleanedSummary.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, 'various locations')
+    // Find all UUID patterns in the summary
+    const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
+    const uuids = cleanedSummary.match(uuidPattern)
     
-    // Clean up awkward phrasing that results from ID removal
-    cleanedSummary = cleanedSummary.replace(/at various locations/gi, 'at different matcha spots')
-    cleanedSummary = cleanedSummary.replace(/experience at various locations/gi, 'experiences')
-    cleanedSummary = cleanedSummary.replace(/tasting experience at various locations/gi, 'tastings')
+    if (uuids && uuids.length > 0) {
+      // Fetch place names for all UUIDs found
+      const uniqueUuids = [...new Set(uuids)]
+      const placeNameMap = {}
+      
+      try {
+        await Promise.all(uniqueUuids.map(async (uuid) => {
+          try {
+            const placeDetail = await placeDirectoryAPI.getDetails(uuid)
+            placeNameMap[uuid] = placeDetail.place.name
+          } catch (err) {
+            console.error(`Failed to fetch place name for ${uuid}:`, err)
+            placeNameMap[uuid] = 'a matcha spot'
+          }
+        }))
+        
+        // Replace each UUID with its corresponding place name
+        for (const [uuid, name] of Object.entries(placeNameMap)) {
+          const regex = new RegExp(uuid, 'gi')
+          cleanedSummary = cleanedSummary.replace(regex, name)
+        }
+      } catch (err) {
+        console.error('Error fetching place names:', err)
+        // Fallback to generic replacement if fetching fails
+        cleanedSummary = cleanedSummary.replace(uuidPattern, 'various locations')
+      }
+    }
     
     profileSummary.value = cleanedSummary
   } catch (err) {

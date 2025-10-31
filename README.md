@@ -6,7 +6,7 @@ Emma is a graduate student who recently developed a love for matcha but struggle
 
 ## Link to screen recording
 
-[@demo](https://youtu.be/B01DCVjGawg)
+[@demo](https://youtu.be/zxYA6yHbeEM)
 
 
 ## Link to visual design study
