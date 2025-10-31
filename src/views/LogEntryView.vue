@@ -190,7 +190,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { experienceLogAPI, placeDirectoryAPI, recommendationEngineAPI, userDirectoryAPI } from '@/services/api'
+import { experienceLogAPI, placeDirectoryAPI } from '@/services/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -279,7 +279,17 @@ const submitLog = async () => {
     // Use first photo only (API accepts single photo)
     const photo = logForm.value.photos.length > 0 ? logForm.value.photos[0] : undefined
 
-    await experienceLogAPI.createLog({
+    console.log('LogEntryView: Submitting log with data:', {
+      userId,
+      placeId,
+      rating: logForm.value.rating,
+      sweetness: logForm.value.sweetness,
+      strength: logForm.value.strength,
+      hasPhoto: !!photo,
+      hasNotes: !!logForm.value.notes
+    })
+
+    const logData = {
       userId,
       placeId,
       rating: logForm.value.rating,
@@ -287,23 +297,15 @@ const submitLog = async () => {
       strength: logForm.value.strength,
       notes: logForm.value.notes || undefined,
       photo
-    })
-
-    // Refresh recommendations after creating a log
-    try {
-      const savedResult = await userDirectoryAPI.getSavedPlaces(userId)
-      const triedResult = await experienceLogAPI.getTriedPlaces(userId)
-      
-      await recommendationEngineAPI.refreshRecommendations({
-        userId,
-        savedPlaces: savedResult.places || [],
-        preferences: {},
-        triedPlaces: triedResult.places || []
-      })
-    } catch (recError) {
-      console.error('Error refreshing recommendations:', recError)
-      // Don't fail the whole operation if recommendation refresh fails
     }
+
+    console.log('LogEntryView: Calling createLog API...')
+    const result = await experienceLogAPI.createLog(logData)
+    console.log('LogEntryView: createLog successful, result:', result)
+
+    // Skip recommendation refresh to prevent timeout
+    // Recommendations will be refreshed on next page load
+    console.log('LogEntryView: Skipping recommendation refresh to prevent timeout')
 
     successMessage.value = 'Experience logged successfully!'
     

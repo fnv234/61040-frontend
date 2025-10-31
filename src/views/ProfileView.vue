@@ -225,8 +225,10 @@ const loadRecommendations = async () => {
     console.log('ProfileView: getRecommendations result:', result)
     
     if (result.recommendations && result.recommendations.length > 0) {
-      console.log(`ProfileView: Fetching details for ${result.recommendations.length} recommendations`)
-      const placeDetailsPromises = result.recommendations.map(async (placeId) => {
+      // Limit to top 8 recommendations
+      const topRecommendations = result.recommendations.slice(0, 8)
+      console.log(`ProfileView: Fetching details for ${topRecommendations.length} recommendations (limited from ${result.recommendations.length})`)
+      const placeDetailsPromises = topRecommendations.map(async (placeId) => {
         try {
           const detail = await placeDirectoryAPI.getDetails(placeId)
           return detail
