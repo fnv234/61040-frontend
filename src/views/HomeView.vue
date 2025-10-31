@@ -343,7 +343,7 @@
                 <div class="font-medium text-dark-green">{{ place.name }}</div>
                 <div class="text-sm text-gray-600">{{ place.address }}</div>
                 <div class="flex items-center gap-2 mt-1">
-                  <span class="text-sm">⭐ {{ place.avgRating?.toFixed(1) || 'N/A' }}</span>
+                  <span class="text-sm">⭐ {{ place.avgRating !== undefined && place.avgRating !== null ? place.avgRating.toFixed(1) : 'N/A' }}</span>
                   <span class="text-sm text-gray-500">{{ place.distance?.toFixed(1) }} km</span>
                 </div>
               </SpotlightCard>
@@ -373,7 +373,7 @@ import MapView from '@/components/MapView.vue'
 import GlassSurface from '@/components/GlassSurface.vue'
 import SpotlightCard from '@/components/SpotlightCard.vue'
 import Waves from '@/components/Waves.vue'
-import { userDirectoryAPI, placeDirectoryAPI, recommendationEngineAPI } from '@/services/api'
+import { userDirectoryAPI, placeDirectoryAPI, recommendationEngineAPI, experienceLogAPI } from '@/services/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -525,14 +525,44 @@ const loadRecommendations = async () => {
     // Get recommendations from backend
     const response = await recommendationEngineAPI.getRecommendations(userStore.userId)
     if (response.recommendations && response.recommendations.length > 0) {
-      const recDetailsPromises = response.recommendations.slice(0, 3).map(placeId => 
-        placeDirectoryAPI.getDetails(placeId)
-      )
+      const recDetailsPromises = response.recommendations.slice(0, 3).map(async placeId => {
+        const placeDetail = await placeDirectoryAPI.getDetails(placeId)
+        
+        // Fetch logs to calculate average rating
+        try {
+          const logsResponse = await experienceLogAPI.getPlaceLogs(userStore.userId, placeId)
+          if (logsResponse.logs && logsResponse.logs.length > 0) {
+            const totalRating = logsResponse.logs.reduce((sum, log) => sum + log.rating, 0)
+            placeDetail.place.avgRating = totalRating / logsResponse.logs.length
+            console.log(`Place ${placeDetail.place.name} has avgRating: ${placeDetail.place.avgRating}`)
+          } else {
+            // No logs yet, set to undefined
+            placeDetail.place.avgRating = undefined
+          }
+        } catch (logError) {
+          console.error('Error fetching logs for place:', logError)
+          placeDetail.place.avgRating = undefined
+        }
+        
+        return placeDetail
+      })
       const recDetails = await Promise.all(recDetailsPromises)
       recommendedPlaces.value = recDetails.map(detail => detail.place)
     } else {
-      // Fallback: show random places
-      recommendedPlaces.value = nearbyPlaces.value.slice(0, 3)
+      // Fallback: show random places with calculated ratings
+      const placesWithRatings = await Promise.all(nearbyPlaces.value.slice(0, 3).map(async place => {
+        try {
+          const logsResponse = await experienceLogAPI.getPlaceLogs(userStore.userId, place._id)
+          if (logsResponse.logs && logsResponse.logs.length > 0) {
+            const totalRating = logsResponse.logs.reduce((sum, log) => sum + log.rating, 0)
+            place.avgRating = totalRating / logsResponse.logs.length
+          }
+        } catch (logError) {
+          console.error('Error fetching logs for fallback place:', logError)
+        }
+        return place
+      }))
+      recommendedPlaces.value = placesWithRatings
     }
   } catch (error) {
     console.error('Error loading recommendations:', error)

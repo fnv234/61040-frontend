@@ -80,14 +80,23 @@
         <div v-if="place.photos && place.photos.length > 0" class="mb-6">
           <h3 class="text-lg font-semibold mb-3">Photos</h3>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <img
+            <div
               v-for="(photo, index) in place.photos"
               :key="index"
-              :src="photo"
-              :alt="`${place.name} photo ${index + 1}`"
-              class="w-full h-40 object-cover rounded-lg"
-            />
+              class="relative"
+            >
+              <img
+                :src="getPhotoUrl(photo)"
+                :alt="`${place.name} photo ${index + 1}`"
+                class="w-full h-40 object-cover rounded-lg"
+                @error="(e) => handleImageError(e, photo)"
+                loading="lazy"
+              />
+            </div>
           </div>
+        </div>
+        <div v-else-if="place" class="mb-6 text-gray-500 text-sm">
+          No photos available for this place yet.
         </div>
 
         <!-- Sweetness and Strength Sliders -->
@@ -192,6 +201,11 @@ const loadPlace = async () => {
     const result = await placeDirectoryAPI.getDetails(route.params.id)
     place.value = result.place
     
+    // Debug: Log photos info
+    console.log('Place loaded:', place.value.name)
+    console.log('Photos:', place.value.photos)
+    console.log('Photos length:', place.value.photos?.length || 0)
+    
     // Check if place is saved
     if (userStore.isLoggedIn) {
       try {
@@ -211,6 +225,35 @@ const loadPlace = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const getPhotoUrl = (photo) => {
+  // If it's already a full URL (http/https), return as is
+  if (photo && (photo.startsWith('http://') || photo.startsWith('https://'))) {
+    return photo
+  }
+  
+  // If it's a data URL (base64), return as is
+  if (photo && photo.startsWith('data:')) {
+    return photo
+  }
+  
+  // If it's a relative path starting with /, assume it's from the backend
+  if (photo && photo.startsWith('/')) {
+    return `http://localhost:8000${photo}`
+  }
+  
+  // Otherwise, try to construct a full URL
+  return photo || ''
+}
+
+const handleImageError = (event, originalUrl) => {
+  console.error('Image failed to load:', originalUrl)
+  console.error('Processed URL was:', event.target.src)
+  console.error('Error details:', event)
+  
+  // Try to show a placeholder or hide the broken image
+  event.target.style.display = 'none'
 }
 
 const loadPlaceLogs = async () => {
