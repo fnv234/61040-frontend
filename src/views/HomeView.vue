@@ -683,6 +683,19 @@ const handleLogin = async () => {
       throw new Error('Incorrect password. Please try again.')
     }
     
+    // Ensure user is registered in backend (in case they were created before backend integration)
+    try {
+      await userDirectoryAPI.registerUser({
+        userId: account.userId,
+        displayName: account.displayName,
+        email: loginForm.value.email
+      })
+      console.log('User registered/verified in backend')
+    } catch (error) {
+      // If user already exists, that's fine - continue with login
+      console.log('User may already exist in backend:', error)
+    }
+    
     // Log in the user
     userStore.setUser(account.userId, account.displayName, loginForm.value.email)
     successMessage.value = 'Successfully logged in!'
