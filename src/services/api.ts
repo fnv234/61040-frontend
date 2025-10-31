@@ -26,6 +26,10 @@ import type {
 // Use environment variable for deployed site, default to /api for local development
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
+console.log('🔧 API Configuration:')
+console.log('  VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL)
+console.log('  Using API_BASE_URL:', API_BASE_URL)
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -154,9 +158,13 @@ export const placeDirectoryAPI = {
 
   findNearby: async (coords: [number, number], radius: number): Promise<FindNearbyResponse> => {
     try {
+      console.log('API: findNearby called with coords:', coords, 'radius:', radius)
+      console.log('API: Using base URL:', API_BASE_URL)
       const response = await apiClient.post<FindNearbyResponse>('/PlaceDirectory/_find_nearby', { coords, radius })
+      console.log('API: findNearby response:', response.data)
       return response.data
     } catch (error) {
+      console.error('API: findNearby error:', error)
       return handleError(error)
     }
   },

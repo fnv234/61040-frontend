@@ -455,18 +455,26 @@ const calculateDistance = (coords1, coords2) => {
 
 // Load nearby places from API
 const loadNearbyPlaces = async () => {
-  if (!userLocation.value) return
+  if (!userLocation.value) {
+    console.warn('No user location available')
+    return
+  }
+  
+  console.log('Loading nearby places with location:', userLocation.value)
   
   try {
     const response = await placeDirectoryAPI.findNearby(userLocation.value, 100000) // Large radius to get all places
+    console.log('findNearby response:', response)
     
     // Fetch full details for each place ID
     if (response.placeIds && response.placeIds.length > 0) {
+      console.log(`Found ${response.placeIds.length} place IDs, fetching details...`)
       const placeDetailsPromises = response.placeIds.map(placeId => 
         placeDirectoryAPI.getDetails(placeId)
       )
       const placeDetails = await Promise.all(placeDetailsPromises)
       const allPlaces = placeDetails.map(detail => detail.place)
+      console.log(`Fetched ${allPlaces.length} place details`)
       
       // Filter to only show places within 50km (reasonable driving distance)
       const nearbyFiltered = allPlaces.filter(place => {
@@ -474,15 +482,18 @@ const loadNearbyPlaces = async () => {
         return distance <= 50 // 50km max distance
       })
       
+      console.log(`Filtered to ${nearbyFiltered.length} places within 50km`)
       nearbyPlaces.value = nearbyFiltered
       filteredPlaces.value = nearbyPlaces.value
       loadRecommendations()
     } else {
+      console.warn('No place IDs returned from findNearby')
       nearbyPlaces.value = []
       filteredPlaces.value = []
     }
   } catch (error) {
     console.error('Error loading nearby places:', error)
+    console.error('Error details:', error instanceof Error ? error.message : String(error))
     nearbyPlaces.value = []
     filteredPlaces.value = []
   }
