@@ -210,13 +210,28 @@ export const placeDirectoryAPI = {
 export const userDirectoryAPI = {
   registerUser: async (data: RegisterUserRequest): Promise<RegisterUserResponse> => {
     try {
+      console.log('API: registerUser called with:', data)
       const response = await apiClient.post('/UserDirectory/register_user', data)
+      console.log('API: registerUser response:', response.data)
       const payload = response.data
       if (payload && typeof payload === 'object' && 'error' in (payload as any)) {
-        throw new Error(String((payload as any).error))
+        const errorMsg = String((payload as any).error)
+        console.log('API: registerUser returned error:', errorMsg)
+        // If user already exists, that's okay - just return a success response
+        if (errorMsg.toLowerCase().includes('already exists') || errorMsg.toLowerCase().includes('duplicate')) {
+          console.log('API: User already exists, treating as success')
+          return { userId: data.userId } as RegisterUserResponse
+        }
+        throw new Error(errorMsg)
       }
       return payload as RegisterUserResponse
     } catch (error) {
+      console.error('API: registerUser error:', error)
+      // If it's a "user already exists" error, don't throw
+      if (error instanceof Error && (error.message.toLowerCase().includes('already exists') || error.message.toLowerCase().includes('duplicate'))) {
+        console.log('API: User already exists (from catch), treating as success')
+        return { userId: data.userId } as RegisterUserResponse
+      }
       return handleError(error)
     }
   },
