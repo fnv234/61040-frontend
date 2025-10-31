@@ -30,8 +30,8 @@ const emit = defineEmits<{
 }>()
 
 const mapContainer = ref<HTMLElement | null>(null)
-const map = ref<mapboxgl.Map | null>(null)
-const markers = ref<mapboxgl.Marker[]>([])
+const map = ref<any>(null)
+const markers = ref<any[]>([])
 const isLoading = ref(true)
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiZm52MjM0IiwiYSI6ImNtOTI5amN0dDA5cGcybHBuYzZuczh4YTIifQ.rcAYW3Br3OmP3Jy_rZaCeQ'
@@ -51,7 +51,7 @@ onMounted(() => {
     zoom: 13
   })
 
-  map.value.on('load', () => {
+  ;(map.value as any).on('load', () => {
     isLoading.value = false
     
     // Add user location marker if available
@@ -67,7 +67,7 @@ onMounted(() => {
   })
 
   // Add navigation controls
-  map.value.addControl(new mapboxgl.NavigationControl(), 'top-right')
+  ;(map.value as any).addControl(new mapboxgl.NavigationControl(), 'top-right')
 })
 
 const updateMarkers = () => {
@@ -113,7 +113,7 @@ const updateMarkers = () => {
     const bounds = new mapboxgl.LngLatBounds()
     props.places.forEach(place => bounds.extend(place.coordinates))
     if (props.userLocation) bounds.extend(props.userLocation)
-    map.value!.fitBounds(bounds, { padding: 50, maxZoom: 15 })
+    ;(map.value as any).fitBounds(bounds, { padding: 50, maxZoom: 15 })
   }
 }
 
