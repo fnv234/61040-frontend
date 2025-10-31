@@ -13,41 +13,50 @@
         class="absolute bottom-20 left-10 w-64 h-64 object-cover rounded-full blur-3xl"
       />
     </div>
-    <nav class="bg-white shadow-md border-b-2 border-matcha-500 animate-fade-in-up">
+    <nav class="bg-gradient-to-r from-white via-matcha-50 to-white shadow-lg border-b-2 border-matcha-300 animate-fade-in-up backdrop-blur-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
-          <div class="flex">
+          <div class="flex items-center">
             <div class="flex-shrink-0 flex items-center">
-              <h1 class="text-2xl font-decorative font-bold text-matcha-600">
-                <span class="inline-block hover:animate-wiggle">🍵</span> matchamatch
+              <div class="bg-gradient-to-br from-brighter-green to-matcha-green p-2 rounded-xl shadow-md hover:scale-110 transition-transform">
+                <span class="text-2xl inline-block hover:animate-wiggle">🍵</span>
+              </div>
+              <h1 class="ml-3 text-2xl font-decorative font-bold bg-gradient-to-r from-matcha-600 to-brighter-green bg-clip-text text-transparent">
+                matchamatch
               </h1>
             </div>
-            <div v-if="userStore.isLoggedIn" class="hidden sm:ml-6 sm:flex sm:space-x-8">
+            <div v-if="userStore.isLoggedIn" class="hidden sm:ml-8 sm:flex sm:space-x-2">
               <router-link
                 to="/"
-                class="border-transparent text-light-red-brown-gray hover:border-brighter-green hover:text-dark-green inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium font-barlow transition-colors"
+                class="nav-link group px-4 py-2 rounded-lg text-sm font-medium font-barlow transition-all hover:bg-matcha-100 flex items-center gap-2"
               >
-                Home
+                <span class="text-lg group-hover:scale-110 transition-transform">🏠</span>
+                <span>Home</span>
               </router-link>
               <router-link
                 to="/collection"
-                class="border-transparent text-light-red-brown-gray hover:border-brighter-green hover:text-dark-green inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium font-barlow transition-colors"
+                class="nav-link group px-4 py-2 rounded-lg text-sm font-medium font-barlow transition-all hover:bg-matcha-100 flex items-center gap-2"
               >
-                Collection
+                <span class="text-lg group-hover:scale-110 transition-transform">⭐</span>
+                <span>Collection</span>
               </router-link>
               <router-link
                 to="/profile"
-                class="border-transparent text-light-red-brown-gray hover:border-brighter-green hover:text-dark-green inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium font-barlow transition-colors"
+                class="nav-link group px-4 py-2 rounded-lg text-sm font-medium font-barlow transition-all hover:bg-matcha-100 flex items-center gap-2"
               >
-                Profile
+                <span class="text-lg group-hover:scale-110 transition-transform">👤</span>
+                <span>Profile</span>
               </router-link>
             </div>
           </div>
           <div v-if="userStore.isLoggedIn" class="flex items-center space-x-4">
-            <span class="text-sm text-brown font-medium">{{ userStore.displayName }}</span>
+            <div class="hidden md:flex items-center gap-2 px-3 py-1 bg-white/60 rounded-full shadow-sm">
+              <span class="text-xs text-gray-500">👋</span>
+              <span class="text-sm text-brown font-medium">{{ userStore.displayName }}</span>
+            </div>
             <button
               @click="handleLogout"
-              class="px-3 py-1 text-sm bg-cherry-blossom text-brown hover:bg-darker-light-pink font-medium rounded-lg transition-all hover-grow btn-cute"
+              class="px-4 py-2 text-sm bg-gradient-to-r from-cherry-blossom to-darker-light-pink text-white hover:shadow-lg font-medium rounded-full transition-all hover:scale-105 btn-cute"
             >
               Log Out
             </button>
@@ -76,7 +85,11 @@ const handleLogout = () => {
 </script>
 
 <style>
-.router-link-active {
-  @apply border-brighter-green text-dark-green font-semibold;
+.nav-link {
+  @apply text-light-red-brown-gray;
+}
+
+.nav-link.router-link-active {
+  @apply bg-matcha-200 text-dark-green font-semibold shadow-sm;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="px-4 py-8">
+  <div class="px-4 py-8 relative">
     <div v-if="!userStore.isLoggedIn" class="text-center mb-12 animate-fade-in-up">
       <!-- Cute matcha image -->
       <div class="mb-6 flex justify-center">
@@ -191,37 +191,60 @@
     </div>
 
     <div v-else class="space-y-4">
-      <!-- Top Bar with Profile Icon -->
-      <div class="flex items-center justify-between">
-        <router-link 
-          to="/profile" 
-          class="flex items-center space-x-2 text-gray-700 hover:text-matcha-600 transition-colors"
-        >
-          <div class="w-10 h-10 bg-matcha-100 rounded-full flex items-center justify-center">
-            <span class="text-xl">👤</span>
-          </div>
-          <span class="font-medium">{{ userStore.displayName }}</span>
-        </router-link>
-        
-        <button
-          @click="getUserLocation"
-          class="px-4 py-2 bg-brighter-green text-white rounded-lg hover:bg-matcha-green transition-all text-sm font-medium btn-cute hover-grow"
-        >
-          📍 Use My Location
-        </button>
+      <!-- User Info and Location with Waves Background -->
+      <div class="relative mb-6 rounded-xl overflow-hidden">
+        <!-- Waves Background - Constrained to this section -->
+        <Waves 
+          :lineColor="'rgba(139, 195, 74, 0.2)'"
+          :backgroundColor="'linear-gradient(135deg, rgba(245, 251, 238, 0.6), rgba(232, 245, 233, 0.6))'"
+          :waveSpeedX="0.015"
+          :waveSpeedY="0.008"
+          :waveAmpX="25"
+          :waveAmpY="15"
+          :xGap="12"
+          :yGap="36"
+          :customStyle="{ position: 'absolute', height: '100%' }"
+        />
+        <div class="relative z-10 flex items-center justify-between p-6 animate-fade-in-up">
+          <router-link 
+            to="/profile" 
+            class="flex items-center gap-3 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-lg shadow-md hover:shadow-lg transition-all hover-lift"
+          >
+            <div class="w-10 h-10 bg-matcha-100 rounded-full flex items-center justify-center">
+              <span class="text-xl">👤</span>
+            </div>
+            <span class="font-medium">{{ userStore.displayName }}</span>
+          </router-link>
+          
+          <button
+            @click="getUserLocation"
+            class="px-4 py-2 bg-brighter-green text-white rounded-lg hover:bg-matcha-green transition-all text-sm font-medium btn-cute hover-grow"
+          >
+            📍 Use My Location
+          </button>
+        </div>
       </div>
 
       <!-- Search and Filter Bar -->
-      <div class="bg-white rounded-lg shadow-md p-4">
+      <div class="bg-white rounded-lg shadow-md p-4 mb-4">
         <div class="flex gap-4">
           <div class="flex-1">
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search for matcha places..."
-              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-matcha-500"
-              @input="handleSearch"
-            />
+            <GlassSurface 
+              :width="'100%'"
+              :height="48"
+              :borderRadius="8"
+              :brightness="98"
+              :opacity="0.9"
+              class="glass-input"
+            >
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search for matcha places..."
+                class="w-full h-full px-4 py-2 bg-transparent border-none focus:outline-none text-gray-700 placeholder-gray-500"
+                @input="handleSearch"
+              />
+            </GlassSurface>
           </div>
           <button
             @click="showFilters = !showFilters"
@@ -309,20 +332,21 @@
             </div>
             
             <!-- Recommendations -->
-            <div v-else class="space-y-3">
-              <div
-                v-for="place in recommendedPlaces.slice(0, 3)"
+            <div v-else class="space-y-2">
+              <SpotlightCard
+                v-for="place in recommendedPlaces"
                 :key="place._id"
                 @click="handlePlaceClick(place._id)"
-                class="p-3 border-2 border-green-gray rounded-lg hover:border-brighter-green cursor-pointer transition-all hover-lift"
+                :spotlightColor="'rgba(139, 195, 74, 0.25)'"
+                class="cursor-pointer transition-all hover:scale-[1.02]"
               >
-                <h4 class="font-medium text-gray-900">{{ place.name }}</h4>
-                <p class="text-xs text-gray-500 mt-1">{{ place.address }}</p>
-                <div class="flex items-center justify-between mt-2">
-                  <span class="text-xs text-matcha-600">{{ place.preparationStyles?.join(', ') }}</span>
-                  <span class="text-xs text-gray-500">{{ place.priceRange }}</span>
+                <div class="font-medium text-dark-green">{{ place.name }}</div>
+                <div class="text-sm text-gray-600">{{ place.address }}</div>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-sm">⭐ {{ place.avgRating?.toFixed(1) || 'N/A' }}</span>
+                  <span class="text-sm text-gray-500">{{ place.distance?.toFixed(1) }} km</span>
                 </div>
-              </div>
+              </SpotlightCard>
             </div>
           </div>
 
@@ -342,13 +366,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { userDirectoryAPI, placeDirectoryAPI, recommendationEngineAPI } from '@/services/api'
 import MapView from '@/components/MapView.vue'
+import GlassSurface from '@/components/GlassSurface.vue'
+import SpotlightCard from '@/components/SpotlightCard.vue'
+import Waves from '@/components/Waves.vue'
+import { userDirectoryAPI, placeDirectoryAPI, recommendationEngineAPI } from '@/services/api'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
 const activeTab = ref('login')
@@ -528,6 +556,14 @@ watch([filterRating, filterSweetness, filterStyle], () => {
 onMounted(() => {
   if (userStore.isLoggedIn) {
     getUserLocation()
+  }
+})
+
+// Watch for route changes to refresh recommendations when returning from place detail
+watch(() => route.path, (newPath, oldPath) => {
+  // Reload recommendations when returning to home from a place detail page
+  if (newPath === '/' && oldPath && oldPath.includes('/places/') && userStore.isLoggedIn) {
+    loadRecommendations()
   }
 })
 

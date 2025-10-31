@@ -1,5 +1,5 @@
 <template>
-  <div class="px-4 py-8">
+  <div class="px-4 py-8 relative">
     <!-- Decorative header with image -->
     <div class="flex items-center justify-between mb-6 animate-fade-in-up">
       <h1 class="text-4xl font-decorative text-matcha-600">
@@ -41,12 +41,23 @@
     <!-- Filter Section -->
     <div class="bg-white rounded-lg shadow-md p-4 mb-6">
       <div class="flex gap-4">
-        <input
-          v-model="filterQuery"
-          type="text"
-          :placeholder="activeView === 'places' ? 'Search saved places...' : 'Search logs...'"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-matcha-500"
-        />
+        <div class="flex-1">
+          <GlassSurface 
+            :width="'100%'"
+            :height="48"
+            :borderRadius="8"
+            :brightness="98"
+            :opacity="0.9"
+            class="glass-input"
+          >
+            <input
+              v-model="filterQuery"
+              type="text"
+              :placeholder="activeView === 'places' ? 'Search saved places...' : 'Search logs...'"
+              class="w-full h-full px-4 py-2 bg-transparent border-none focus:outline-none text-gray-700 placeholder-gray-500"
+            />
+          </GlassSurface>
+        </div>
         <select
           v-if="activeView === 'logs'"
           v-model="filterRating"
@@ -205,6 +216,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { userDirectoryAPI, experienceLogAPI, placeDirectoryAPI, recommendationEngineAPI } from '@/services/api'
+import GlassSurface from '@/components/GlassSurface.vue'
 
 const router = useRouter()
 const userStore = useUserStore()

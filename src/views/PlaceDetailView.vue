@@ -166,7 +166,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { placeDirectoryAPI, userDirectoryAPI, experienceLogAPI } from '@/services/api'
@@ -215,7 +215,8 @@ const loadPlace = async () => {
 
 const loadPlaceLogs = async () => {
   try {
-    const response = await experienceLogAPI.getPlaceLogs(route.params.id)
+    // Get logs for this place - pass userId to get all logs for this place
+    const response = await experienceLogAPI.getPlaceLogs(userStore.userId, route.params.id)
     if (response.logs && response.logs.length > 0) {
       placeLogs.value = response.logs
       
@@ -258,5 +259,20 @@ const toggleSave = async () => {
 
 onMounted(() => {
   loadPlace()
+})
+
+// Watch for route changes to reload logs when coming back from log entry
+watch(() => route.params.id, (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    loadPlace()
+  }
+})
+
+// Also watch for route meta or query changes that might indicate a refresh is needed
+watch(() => route.fullPath, (newPath, oldPath) => {
+  // Only reload if we're on the same place (not navigating away)
+  if (newPath.includes('/places/') && !newPath.includes('/log') && oldPath.includes('/log')) {
+    loadPlaceLogs()
+  }
 })
 </script>
