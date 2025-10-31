@@ -159,7 +159,7 @@
           </label>
           <div class="space-y-2">
             <input
-              v-for="(photo, index) in form.photos"
+              v-for="(_photo, index) in form.photos"
               :key="index"
               v-model="form.photos[index]"
               type="url"
@@ -199,10 +199,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { placeDirectoryAPI } from '@/services/api'
-
-const router = useRouter()
 
 const form = ref({
   name: '',
@@ -252,8 +249,8 @@ const handleSubmit = async () => {
     await placeDirectoryAPI.createPlace({
       name: form.value.name,
       address: form.value.address,
-      coordinates,
-      preparationStyles: form.value.preparationStyles,
+      coords: coordinates,
+      styles: form.value.preparationStyles,
       priceRange: form.value.priceRange,
       hours: form.value.hours || 'Hours not specified',
       photos

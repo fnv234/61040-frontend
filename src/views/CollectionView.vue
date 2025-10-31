@@ -89,7 +89,7 @@
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div
-          v-for="(place, index) in filteredSavedPlaces"
+          v-for="place in filteredSavedPlaces"
           :key="place._id"
           class="bg-white rounded-lg shadow-md overflow-hidden hover-lift stagger-item"
         >
@@ -145,7 +145,7 @@
 
       <div v-else class="space-y-4">
         <div
-          v-for="(log, index) in filteredLogs"
+          v-for="log in filteredLogs"
           :key="log._id"
           class="bg-white rounded-lg shadow-md p-6 hover-lift stagger-item"
         >
@@ -266,7 +266,10 @@ const filteredLogs = computed(() => {
 const loadSavedPlaces = async () => {
   loading.value = true
   try {
-    const response = await userDirectoryAPI.getSavedPlaces(userStore.userId)
+    const userId = userStore.userId
+    if (!userId) return
+    
+    const response = await userDirectoryAPI.getSavedPlaces(userId)
     if (response.places && response.places.length > 0) {
       const placeDetailsPromises = response.places.map(placeId =>
         placeDirectoryAPI.getDetails(placeId)
@@ -285,7 +288,10 @@ const loadSavedPlaces = async () => {
 const loadLogs = async () => {
   loading.value = true
   try {
-    const response = await experienceLogAPI.getUserLogs(userStore.userId)
+    const userId = userStore.userId
+    if (!userId) return
+    
+    const response = await experienceLogAPI.getUserLogs(userId)
     if (response.logs) {
       // Enrich logs with place names
       const enrichedLogs = await Promise.all(

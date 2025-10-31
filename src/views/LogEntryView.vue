@@ -206,7 +206,7 @@ const logForm = ref({
   sweetness: 3,
   strength: 3,
   notes: '',
-  photos: []
+  photos: [] as string[]
 })
 
 const photoUrlInput = ref('')
@@ -266,28 +266,36 @@ const submitLog = async () => {
   successMessage.value = ''
 
   try {
-    const placeId = route.params.id as string
+    const userId = userStore.userId
+    if (!userId) {
+      throw new Error('User not logged in')
+    }
     
-    // Use photos array (already contains data URLs or regular URLs)
-    const photos = logForm.value.photos.length > 0 ? logForm.value.photos : undefined
+    const placeId = route.params.id as string
+    if (!placeId) {
+      throw new Error('Place ID is required')
+    }
+    
+    // Use first photo only (API accepts single photo)
+    const photo = logForm.value.photos.length > 0 ? logForm.value.photos[0] : undefined
 
     await experienceLogAPI.createLog({
-      userId: userStore.userId,
+      userId,
       placeId,
       rating: logForm.value.rating,
       sweetness: logForm.value.sweetness,
       strength: logForm.value.strength,
       notes: logForm.value.notes || undefined,
-      photos
+      photo
     })
 
     // Refresh recommendations after creating a log
     try {
-      const savedResult = await userDirectoryAPI.getSavedPlaces(userStore.userId)
-      const triedResult = await experienceLogAPI.getTriedPlaces(userStore.userId)
+      const savedResult = await userDirectoryAPI.getSavedPlaces(userId)
+      const triedResult = await experienceLogAPI.getTriedPlaces(userId)
       
       await recommendationEngineAPI.refreshRecommendations({
-        userId: userStore.userId,
+        userId,
         savedPlaces: savedResult.places || [],
         preferences: {},
         triedPlaces: triedResult.places || []

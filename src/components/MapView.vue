@@ -59,7 +59,7 @@ onMounted(() => {
       new mapboxgl.Marker({ color: '#4CAF50' })
         .setLngLat(props.userLocation)
         .setPopup(new mapboxgl.Popup().setHTML('<strong>Your Location</strong>'))
-        .addTo(map.value!)
+        .addTo(map.value as any)
     }
 
     // Add place markers
@@ -103,7 +103,7 @@ const updateMarkers = () => {
     const marker = new mapboxgl.Marker(el)
       .setLngLat(place.coordinates)
       .setPopup(popup)
-      .addTo(map.value!)
+      .addTo(map.value as any)
 
     markers.value.push(marker)
   })
