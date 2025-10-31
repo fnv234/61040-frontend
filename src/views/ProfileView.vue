@@ -182,13 +182,27 @@ const loadSavedPlaces = async () => {
     
     if (result.places && result.places.length > 0) {
       console.log(`ProfileView: Fetching details for ${result.places.length} saved places`)
-      const placeDetails = await Promise.all(
-        result.places.map(placeId => placeDirectoryAPI.getDetails(placeId))
-      )
-      savedPlaces.value = placeDetails.map(detail => detail.place)
+      console.log('ProfileView: Place IDs:', result.places)
+      
+      const placeDetailsPromises = result.places.map(async (placeId) => {
+        try {
+          console.log('ProfileView: Fetching details for placeId:', placeId)
+          const detail = await placeDirectoryAPI.getDetails(placeId)
+          console.log('ProfileView: Got details for', detail.place.name)
+          return detail
+        } catch (err) {
+          console.error('ProfileView: Failed to fetch details for placeId:', placeId, err)
+          return null
+        }
+      })
+      
+      const placeDetails = await Promise.all(placeDetailsPromises)
+      const validPlaces = placeDetails.filter(detail => detail !== null).map(detail => detail.place)
+      savedPlaces.value = validPlaces
       console.log('ProfileView: Loaded', savedPlaces.value.length, 'saved places')
     } else {
       console.log('ProfileView: No saved places found')
+      console.log('ProfileView: result.places:', result?.places)
       savedPlaces.value = []
     }
   } catch (err) {
@@ -212,10 +226,18 @@ const loadRecommendations = async () => {
     
     if (result.recommendations && result.recommendations.length > 0) {
       console.log(`ProfileView: Fetching details for ${result.recommendations.length} recommendations`)
-      const placeDetails = await Promise.all(
-        result.recommendations.map(placeId => placeDirectoryAPI.getDetails(placeId))
-      )
-      recommendations.value = placeDetails.map(detail => detail.place)
+      const placeDetailsPromises = result.recommendations.map(async (placeId) => {
+        try {
+          const detail = await placeDirectoryAPI.getDetails(placeId)
+          return detail
+        } catch (err) {
+          console.error('ProfileView: Failed to fetch recommendation details for placeId:', placeId, err)
+          return null
+        }
+      })
+      const placeDetails = await Promise.all(placeDetailsPromises)
+      const validPlaces = placeDetails.filter(detail => detail !== null).map(detail => detail.place)
+      recommendations.value = validPlaces
       console.log('ProfileView: Loaded', recommendations.value.length, 'recommendations')
     } else {
       // Fallback: Show some nearby places if no recommendations
@@ -248,16 +270,26 @@ const loadRecommendations = async () => {
 }
 
 const refreshRecommendations = async () => {
-  if (!userStore.isLoggedIn) return
+  if (!userStore.isLoggedIn) {
+    console.warn('ProfileView: Cannot refresh recommendations - user not logged in')
+    return
+  }
+  
+  const userId = userStore.userId
+  if (!userId) {
+    console.error('ProfileView: Cannot refresh recommendations - userId is null')
+    return
+  }
   
   loadingRecs.value = true
   try {
+    console.log('ProfileView: Refreshing recommendations for userId:', userId)
     // Get user's saved places and tried places
-    const savedResult = await userDirectoryAPI.getSavedPlaces(userStore.userId)
-    const triedResult = await experienceLogAPI.getTriedPlaces(userStore.userId)
+    const savedResult = await userDirectoryAPI.getSavedPlaces(userId)
+    const triedResult = await experienceLogAPI.getTriedPlaces(userId)
     
     await recommendationEngineAPI.refreshRecommendations({
-      userId: userStore.userId,
+      userId,
       savedPlaces: savedResult.places || [],
       preferences: {},
       triedPlaces: triedResult.places || []
@@ -265,27 +297,38 @@ const refreshRecommendations = async () => {
     
     await loadRecommendations()
   } catch (err) {
-    alert('Error: ' + err.message)
+    console.error('ProfileView: Error refreshing recommendations:', err)
+    alert('Error: ' + (err instanceof Error ? err.message : String(err)))
   } finally {
     loadingRecs.value = false
   }
 }
 
 const generateSummary = async () => {
-  if (!userStore.isLoggedIn) return
+  if (!userStore.isLoggedIn) {
+    console.warn('ProfileView: Cannot generate summary - user not logged in')
+    return
+  }
+  
+  const userId = userStore.userId
+  if (!userId) {
+    console.error('ProfileView: Cannot generate summary - userId is null')
+    return
+  }
   
   loadingSummary.value = true
   try {
+    console.log('ProfileView: Generating summary for userId:', userId)
     // Check if we have a cached summary
-    const cachedSummary = localStorage.getItem(`${SUMMARY_CACHE_KEY}_${userStore.userId}`)
-    const cachedMetadata = localStorage.getItem(`${SUMMARY_METADATA_KEY}_${userStore.userId}`)
+    const cachedSummary = localStorage.getItem(`${SUMMARY_CACHE_KEY}_${userId}`)
+    const cachedMetadata = localStorage.getItem(`${SUMMARY_METADATA_KEY}_${userId}`)
     
     if (cachedSummary && cachedMetadata) {
       const metadata = JSON.parse(cachedMetadata)
       
       // Get current counts of saved places and logs
-      const savedResult = await userDirectoryAPI.getSavedPlaces(userStore.userId)
-      const triedResult = await experienceLogAPI.getTriedPlaces(userStore.userId)
+      const savedResult = await userDirectoryAPI.getSavedPlaces(userId)
+      const triedResult = await experienceLogAPI.getTriedPlaces(userId)
       
       const currentSavedCount = savedResult.places?.length || 0
       const currentLogCount = triedResult.places?.length || 0
@@ -301,7 +344,7 @@ const generateSummary = async () => {
     
     // Generate new summary
     console.log('Generating new profile summary')
-    const result = await experienceLogAPI.generateProfileSummary(userStore.userId)
+    const result = await experienceLogAPI.generateProfileSummary(userId)
     
     // Clean up the summary by replacing UUID place IDs with actual place names
     let cleanedSummary = result.summary
@@ -341,8 +384,8 @@ const generateSummary = async () => {
     profileSummary.value = cleanedSummary
     
     // Cache the summary with metadata
-    const savedResult = await userDirectoryAPI.getSavedPlaces(userStore.userId)
-    const triedResult = await experienceLogAPI.getTriedPlaces(userStore.userId)
+    const savedResult = await userDirectoryAPI.getSavedPlaces(userId)
+    const triedResult = await experienceLogAPI.getTriedPlaces(userId)
     
     const metadata = {
       savedCount: savedResult.places?.length || 0,
@@ -350,8 +393,8 @@ const generateSummary = async () => {
       timestamp: Date.now()
     }
     
-    localStorage.setItem(`${SUMMARY_CACHE_KEY}_${userStore.userId}`, cleanedSummary)
-    localStorage.setItem(`${SUMMARY_METADATA_KEY}_${userStore.userId}`, JSON.stringify(metadata))
+    localStorage.setItem(`${SUMMARY_CACHE_KEY}_${userId}`, cleanedSummary)
+    localStorage.setItem(`${SUMMARY_METADATA_KEY}_${userId}`, JSON.stringify(metadata))
     
   } catch (err) {
     alert('Error: ' + err.message)

@@ -73,7 +73,7 @@
 
     <!-- Saved Places View -->
     <div v-if="activeView === 'places'">
-      <div v-if="loading" class="text-center py-8 text-gray-600">Loading...</div>
+      <div v-if="loadingPlaces" class="text-center py-8 text-gray-600">Loading...</div>
       <div v-else-if="filteredSavedPlaces.length === 0" class="text-center py-8 animate-fade-in-up">
           <img 
             src="/src/assets/pics/matchavertical.jpeg" 
@@ -129,7 +129,7 @@
 
     <!-- Logs View -->
     <div v-else>
-      <div v-if="loading" class="text-center py-8 text-gray-600">Loading...</div>
+      <div v-if="loadingLogs" class="text-center py-8 text-gray-600">Loading...</div>
       <div v-else-if="filteredLogs.length === 0" class="text-center py-8 animate-fade-in-up">
           <img 
             src="/src/assets/pics/matchavertical.jpeg" 
@@ -222,7 +222,8 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const activeView = ref('places')
-const loading = ref(false)
+const loadingPlaces = ref(false)
+const loadingLogs = ref(false)
 const filterQuery = ref('')
 const filterRating = ref('')
 
@@ -264,11 +265,19 @@ const filteredLogs = computed(() => {
 
 // Load saved places
 const loadSavedPlaces = async () => {
-  loading.value = true
+  loadingPlaces.value = true
+  
+  // Safety timeout to ensure loading state clears
+  const timeoutId = setTimeout(() => {
+    console.error('CollectionView: loadSavedPlaces timeout - forcing loading to false')
+    loadingPlaces.value = false
+  }, 10000) // 10 second timeout
+  
   try {
     const userId = userStore.userId
     if (!userId) {
       console.warn('CollectionView: No userId, cannot load saved places')
+      savedPlaces.value = []
       return
     }
     
@@ -276,31 +285,52 @@ const loadSavedPlaces = async () => {
     const response = await userDirectoryAPI.getSavedPlaces(userId)
     console.log('CollectionView: getSavedPlaces response:', response)
     
-    if (response.places && response.places.length > 0) {
+    if (response && response.places && response.places.length > 0) {
       console.log(`CollectionView: Fetching details for ${response.places.length} saved places`)
-      const placeDetailsPromises = response.places.map(placeId =>
-        placeDirectoryAPI.getDetails(placeId)
-      )
+      console.log('CollectionView: Place IDs:', response.places)
+      
+      const placeDetailsPromises = response.places.map(async (placeId) => {
+        try {
+          console.log('CollectionView: Fetching details for placeId:', placeId)
+          const detail = await placeDirectoryAPI.getDetails(placeId)
+          console.log('CollectionView: Got details for', detail.place.name)
+          return detail
+        } catch (err) {
+          console.error('CollectionView: Failed to fetch details for placeId:', placeId, err)
+          return null
+        }
+      })
+      
       const placeDetails = await Promise.all(placeDetailsPromises)
-      savedPlaces.value = placeDetails.map(detail => detail.place)
+      const validPlaces = placeDetails.filter(detail => detail !== null).map(detail => detail.place)
+      savedPlaces.value = validPlaces
       console.log('CollectionView: Loaded', savedPlaces.value.length, 'saved places')
     } else {
-      console.log('CollectionView: No saved places found')
+      console.log('CollectionView: No saved places found or empty response')
+      console.log('CollectionView: response.places:', response?.places)
       savedPlaces.value = []
     }
   } catch (error) {
     console.error('CollectionView: Error loading saved places:', error)
+    console.error('CollectionView: Error details:', error instanceof Error ? error.message : String(error))
+    savedPlaces.value = []
   } finally {
-    loading.value = false
+    clearTimeout(timeoutId)
+    loadingPlaces.value = false
+    console.log('CollectionView: loadSavedPlaces complete, loadingPlaces:', loadingPlaces.value)
   }
 }
 
 // Load logs
 const loadLogs = async () => {
-  loading.value = true
+  loadingLogs.value = true
   try {
     const userId = userStore.userId
-    if (!userId) return
+    if (!userId) {
+      console.warn('CollectionView: No userId, cannot load logs')
+      logs.value = []
+      return
+    }
     
     const response = await experienceLogAPI.getUserLogs(userId)
     if (response.logs) {
@@ -322,11 +352,18 @@ const loadLogs = async () => {
         })
       )
       logs.value = enrichedLogs
+      console.log('CollectionView: Loaded', logs.value.length, 'logs')
+    } else {
+      console.log('CollectionView: No logs found')
+      logs.value = []
     }
   } catch (error) {
-    console.error('Error loading logs:', error)
+    console.error('CollectionView: Error loading logs:', error)
+    console.error('CollectionView: Error details:', error instanceof Error ? error.message : String(error))
+    logs.value = []
   } finally {
-    loading.value = false
+    loadingLogs.value = false
+    console.log('CollectionView: loadLogs complete, loadingLogs:', loadingLogs.value)
   }
 }
 

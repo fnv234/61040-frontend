@@ -34,7 +34,9 @@ const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  timeout: 30000, // 30 second timeout
+  validateStatus: (status) => status < 500 // Don't throw on 4xx errors
 })
 
 // Error handler (robust to non-object response.data)
@@ -60,9 +62,16 @@ const handleError = (error: unknown): never => {
 export const experienceLogAPI = {
   createLog: async (data: CreateLogRequest): Promise<CreateLogResponse> => {
     try {
+      console.log('API: createLog called with data:', data)
+      console.log('API: Posting to:', API_BASE_URL + '/ExperienceLog/create_log')
       const response = await apiClient.post<CreateLogResponse>('/ExperienceLog/create_log', data)
+      console.log('API: createLog response:', response.data)
       return response.data
     } catch (error) {
+      console.error('API: createLog error:', error)
+      if (axios.isAxiosError(error) && error.code === 'ECONNABORTED') {
+        throw new Error('Request timeout - server took too long to respond')
+      }
       return handleError(error)
     }
   },
@@ -214,9 +223,12 @@ export const userDirectoryAPI = {
 
   savePlace: async (userId: string, placeId: string): Promise<Record<string, never>> => {
     try {
+      console.log('API: savePlace called with userId:', userId, 'placeId:', placeId)
       const response = await apiClient.post<Record<string, never>>('/UserDirectory/save_place', { userId, placeId })
+      console.log('API: savePlace response:', response.data)
       return response.data
     } catch (error) {
+      console.error('API: savePlace error:', error)
       return handleError(error)
     }
   },
@@ -242,14 +254,30 @@ export const userDirectoryAPI = {
   getSavedPlaces: async (userId: string): Promise<GetSavedPlacesResponse> => {
     try {
       console.log('API: getSavedPlaces called for userId:', userId)
-      const response = await apiClient.post<{ placeIds: string[] }>('/UserDirectory/_get_saved_places', { userId })
-      console.log('API: getSavedPlaces response:', response.data)
-      const placeIds = response.data.placeIds || []
-      console.log('API: Returning', placeIds.length, 'saved place IDs')
+      const response = await apiClient.post('/UserDirectory/_get_saved_places', { userId })
+      console.log('API: getSavedPlaces raw response:', response)
+      console.log('API: getSavedPlaces response.data:', response.data)
+      
+      // Handle different response formats from backend
+      let placeIds: string[] = []
+      
+      if (response.data) {
+        // Try different possible formats
+        if (Array.isArray(response.data.placeIds)) {
+          placeIds = response.data.placeIds
+        } else if (Array.isArray(response.data.places)) {
+          placeIds = response.data.places
+        } else if (Array.isArray(response.data)) {
+          placeIds = response.data
+        }
+      }
+      
+      console.log('API: Extracted', placeIds.length, 'saved place IDs:', placeIds)
       return { places: placeIds }
     } catch (error) {
       console.error('API: getSavedPlaces error:', error)
-      return handleError(error)
+      // Return empty array instead of throwing
+      return { places: [] }
     }
   },
 }
@@ -259,14 +287,30 @@ export const recommendationEngineAPI = {
   getRecommendations: async (userId: string): Promise<GetRecommendationsResponse> => {
     try {
       console.log('API: getRecommendations called for userId:', userId)
-      const response = await apiClient.post<{ places: string[] }>('/RecommendationEngine/get_recommendations', { userId })
-      console.log('API: getRecommendations response:', response.data)
-      const recommendations = response.data.places || []
-      console.log('API: Returning', recommendations.length, 'recommendations')
+      const response = await apiClient.post('/RecommendationEngine/get_recommendations', { userId })
+      console.log('API: getRecommendations raw response:', response)
+      console.log('API: getRecommendations response.data:', response.data)
+      
+      // Handle different response formats from backend
+      let recommendations: string[] = []
+      
+      if (response.data) {
+        // Try different possible formats
+        if (Array.isArray(response.data.places)) {
+          recommendations = response.data.places
+        } else if (Array.isArray(response.data.recommendations)) {
+          recommendations = response.data.recommendations
+        } else if (Array.isArray(response.data)) {
+          recommendations = response.data
+        }
+      }
+      
+      console.log('API: Extracted', recommendations.length, 'recommendations:', recommendations)
       return { recommendations }
     } catch (error) {
       console.error('API: getRecommendations error:', error)
-      return handleError(error)
+      // Return empty array instead of throwing
+      return { recommendations: [] }
     }
   },
 
