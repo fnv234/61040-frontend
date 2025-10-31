@@ -164,6 +164,10 @@ const loadingSaved = ref(false)
 const loadingRecs = ref(false)
 const loadingSummary = ref(false)
 
+// Cache keys for profile summary
+const SUMMARY_CACHE_KEY = 'matcha_profile_summary'
+const SUMMARY_METADATA_KEY = 'matcha_profile_summary_metadata'
+
 const loadSavedPlaces = async () => {
   if (!userStore.isLoggedIn) return
   
@@ -255,6 +259,31 @@ const generateSummary = async () => {
   
   loadingSummary.value = true
   try {
+    // Check if we have a cached summary
+    const cachedSummary = localStorage.getItem(`${SUMMARY_CACHE_KEY}_${userStore.userId}`)
+    const cachedMetadata = localStorage.getItem(`${SUMMARY_METADATA_KEY}_${userStore.userId}`)
+    
+    if (cachedSummary && cachedMetadata) {
+      const metadata = JSON.parse(cachedMetadata)
+      
+      // Get current counts of saved places and logs
+      const savedResult = await userDirectoryAPI.getSavedPlaces(userStore.userId)
+      const triedResult = await experienceLogAPI.getTriedPlaces(userStore.userId)
+      
+      const currentSavedCount = savedResult.places?.length || 0
+      const currentLogCount = triedResult.places?.length || 0
+      
+      // If counts match, use cached summary
+      if (metadata.savedCount === currentSavedCount && metadata.logCount === currentLogCount) {
+        console.log('Using cached profile summary')
+        profileSummary.value = cachedSummary
+        loadingSummary.value = false
+        return
+      }
+    }
+    
+    // Generate new summary
+    console.log('Generating new profile summary')
     const result = await experienceLogAPI.generateProfileSummary(userStore.userId)
     
     // Clean up the summary by replacing UUID place IDs with actual place names
@@ -293,6 +322,20 @@ const generateSummary = async () => {
     }
     
     profileSummary.value = cleanedSummary
+    
+    // Cache the summary with metadata
+    const savedResult = await userDirectoryAPI.getSavedPlaces(userStore.userId)
+    const triedResult = await experienceLogAPI.getTriedPlaces(userStore.userId)
+    
+    const metadata = {
+      savedCount: savedResult.places?.length || 0,
+      logCount: triedResult.places?.length || 0,
+      timestamp: Date.now()
+    }
+    
+    localStorage.setItem(`${SUMMARY_CACHE_KEY}_${userStore.userId}`, cleanedSummary)
+    localStorage.setItem(`${SUMMARY_METADATA_KEY}_${userStore.userId}`, JSON.stringify(metadata))
+    
   } catch (err) {
     alert('Error: ' + err.message)
   } finally {
