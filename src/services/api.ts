@@ -241,10 +241,15 @@ export const userDirectoryAPI = {
 
   getSavedPlaces: async (userId: string): Promise<GetSavedPlacesResponse> => {
     try {
+      console.log('API: getSavedPlaces called for userId:', userId)
       const response = await apiClient.post<{ placeIds: string[] }>('/UserDirectory/_get_saved_places', { userId })
-      return { places: response.data.placeIds || [] }
+      console.log('API: getSavedPlaces response:', response.data)
+      const placeIds = response.data.placeIds || []
+      console.log('API: Returning', placeIds.length, 'saved place IDs')
+      return { places: placeIds }
     } catch (error) {
-      throw new Error('Failed to get saved places')
+      console.error('API: getSavedPlaces error:', error)
+      return handleError(error)
     }
   },
 }
@@ -253,9 +258,14 @@ export const userDirectoryAPI = {
 export const recommendationEngineAPI = {
   getRecommendations: async (userId: string): Promise<GetRecommendationsResponse> => {
     try {
+      console.log('API: getRecommendations called for userId:', userId)
       const response = await apiClient.post<{ places: string[] }>('/RecommendationEngine/get_recommendations', { userId })
-      return { recommendations: response.data.places || [] }
+      console.log('API: getRecommendations response:', response.data)
+      const recommendations = response.data.places || []
+      console.log('API: Returning', recommendations.length, 'recommendations')
+      return { recommendations }
     } catch (error) {
+      console.error('API: getRecommendations error:', error)
       return handleError(error)
     }
   },

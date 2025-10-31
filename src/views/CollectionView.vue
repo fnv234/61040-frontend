@@ -267,18 +267,29 @@ const loadSavedPlaces = async () => {
   loading.value = true
   try {
     const userId = userStore.userId
-    if (!userId) return
+    if (!userId) {
+      console.warn('CollectionView: No userId, cannot load saved places')
+      return
+    }
     
+    console.log('CollectionView: Loading saved places for userId:', userId)
     const response = await userDirectoryAPI.getSavedPlaces(userId)
+    console.log('CollectionView: getSavedPlaces response:', response)
+    
     if (response.places && response.places.length > 0) {
+      console.log(`CollectionView: Fetching details for ${response.places.length} saved places`)
       const placeDetailsPromises = response.places.map(placeId =>
         placeDirectoryAPI.getDetails(placeId)
       )
       const placeDetails = await Promise.all(placeDetailsPromises)
       savedPlaces.value = placeDetails.map(detail => detail.place)
+      console.log('CollectionView: Loaded', savedPlaces.value.length, 'saved places')
+    } else {
+      console.log('CollectionView: No saved places found')
+      savedPlaces.value = []
     }
   } catch (error) {
-    console.error('Error loading saved places:', error)
+    console.error('CollectionView: Error loading saved places:', error)
   } finally {
     loading.value = false
   }

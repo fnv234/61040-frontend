@@ -169,40 +169,57 @@ const SUMMARY_CACHE_KEY = 'matcha_profile_summary'
 const SUMMARY_METADATA_KEY = 'matcha_profile_summary_metadata'
 
 const loadSavedPlaces = async () => {
-  if (!userStore.isLoggedIn) return
+  if (!userStore.isLoggedIn) {
+    console.warn('ProfileView: User not logged in')
+    return
+  }
   
   loadingSaved.value = true
   try {
+    console.log('ProfileView: Loading saved places for userId:', userStore.userId)
     const result = await userDirectoryAPI.getSavedPlaces(userStore.userId)
+    console.log('ProfileView: getSavedPlaces result:', result)
     
     if (result.places && result.places.length > 0) {
+      console.log(`ProfileView: Fetching details for ${result.places.length} saved places`)
       const placeDetails = await Promise.all(
         result.places.map(placeId => placeDirectoryAPI.getDetails(placeId))
       )
       savedPlaces.value = placeDetails.map(detail => detail.place)
+      console.log('ProfileView: Loaded', savedPlaces.value.length, 'saved places')
+    } else {
+      console.log('ProfileView: No saved places found')
+      savedPlaces.value = []
     }
   } catch (err) {
-    console.error('Error loading saved places:', err)
+    console.error('ProfileView: Error loading saved places:', err)
   } finally {
     loadingSaved.value = false
   }
 }
 
 const loadRecommendations = async () => {
-  if (!userStore.isLoggedIn) return
+  if (!userStore.isLoggedIn) {
+    console.warn('ProfileView: User not logged in')
+    return
+  }
   
   loadingRecs.value = true
   try {
+    console.log('ProfileView: Loading recommendations for userId:', userStore.userId)
     const result = await recommendationEngineAPI.getRecommendations(userStore.userId)
+    console.log('ProfileView: getRecommendations result:', result)
     
     if (result.recommendations && result.recommendations.length > 0) {
+      console.log(`ProfileView: Fetching details for ${result.recommendations.length} recommendations`)
       const placeDetails = await Promise.all(
         result.recommendations.map(placeId => placeDirectoryAPI.getDetails(placeId))
       )
       recommendations.value = placeDetails.map(detail => detail.place)
+      console.log('ProfileView: Loaded', recommendations.value.length, 'recommendations')
     } else {
       // Fallback: Show some nearby places if no recommendations
-      console.log('No recommendations from backend, showing nearby places as fallback')
+      console.log('ProfileView: No recommendations from backend, showing nearby places as fallback')
       const nearbyResult = await placeDirectoryAPI.findNearby([-71.0942, 42.3601], 50000)
       if (nearbyResult.placeIds && nearbyResult.placeIds.length > 0) {
         const placeDetails = await Promise.all(
