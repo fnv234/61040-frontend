@@ -324,7 +324,7 @@ const removeSavedPlace = async (placeId: string) => {
   if (!confirm('Remove this place from your saved collection?')) return
   
   try {
-    await userDirectoryAPI.unsavePlace(userStore.userId, placeId)
+    await userDirectoryAPI.unsavePlace(userStore.userId || '', placeId)
     savedPlaces.value = savedPlaces.value.filter(p => p._id !== placeId)
   } catch (error) {
     console.error('Error removing saved place:', error)
