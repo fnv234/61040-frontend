@@ -342,8 +342,9 @@
               >
                 <div class="font-medium text-dark-green">{{ place.name }}</div>
                 <div class="text-sm text-gray-600">{{ place.address }}</div>
-                <div class="flex items-center gap-2 mt-1">
+                <div class="flex items-center gap-2 mt-1 flex-wrap">
                   <span class="text-sm">⭐ {{ place.avgRating !== undefined && place.avgRating !== null ? place.avgRating.toFixed(1) : 'N/A' }}</span>
+                  <span v-if="place.avgSweetness" class="text-sm text-matcha-600">🍯 {{ place.avgSweetness.toFixed(1) }}/5</span>
                   <span class="text-sm text-gray-500">{{ place.distance?.toFixed(1) }} km</span>
                 </div>
               </SpotlightCard>
@@ -493,7 +494,7 @@ const handleSearch = () => {
 }
 
 // Apply filters to places
-const applyFilters = () => {
+const applyFilters = async () => {
   let places = [...nearbyPlaces.value]
   
   // Search filter
@@ -512,8 +513,41 @@ const applyFilters = () => {
     )
   }
   
-  // Note: Rating and sweetness filters would require log data
-  // For now, we'll just apply what we can
+  // Rating and sweetness filters - fetch log data and calculate averages
+  if (filterRating.value || filterSweetness.value) {
+    const placesWithStats = await Promise.all(places.map(async (place) => {
+      try {
+        const logsResponse = await experienceLogAPI.getPlaceLogs(userStore.userId, place._id)
+        if (logsResponse.logs && logsResponse.logs.length > 0) {
+          const totalRating = logsResponse.logs.reduce((sum, log) => sum + log.rating, 0)
+          const totalSweetness = logsResponse.logs.reduce((sum, log) => sum + log.sweetness, 0)
+          place.avgRating = totalRating / logsResponse.logs.length
+          place.avgSweetness = totalSweetness / logsResponse.logs.length
+        }
+      } catch (err) {
+        console.error('Error fetching logs for filter:', err)
+      }
+      return place
+    }))
+    
+    places = placesWithStats
+    
+    // Apply rating filter
+    if (filterRating.value) {
+      const minRating = parseFloat(filterRating.value)
+      places = places.filter(place => place.avgRating && place.avgRating >= minRating)
+    }
+    
+    // Apply sweetness filter
+    if (filterSweetness.value) {
+      const targetSweetness = parseFloat(filterSweetness.value)
+      places = places.filter(place => {
+        if (!place.avgSweetness) return false
+        // Match sweetness within ±1 range
+        return Math.abs(place.avgSweetness - targetSweetness) <= 1
+      })
+    }
+  }
   
   filteredPlaces.value = places
 }
@@ -528,20 +562,30 @@ const loadRecommendations = async () => {
       const recDetailsPromises = response.recommendations.slice(0, 3).map(async placeId => {
         const placeDetail = await placeDirectoryAPI.getDetails(placeId)
         
-        // Fetch logs to calculate average rating
+        // Fetch logs to calculate average rating and sweetness
         try {
           const logsResponse = await experienceLogAPI.getPlaceLogs(userStore.userId, placeId)
           if (logsResponse.logs && logsResponse.logs.length > 0) {
             const totalRating = logsResponse.logs.reduce((sum, log) => sum + log.rating, 0)
+            const totalSweetness = logsResponse.logs.reduce((sum, log) => sum + log.sweetness, 0)
+            const totalStrength = logsResponse.logs.reduce((sum, log) => sum + log.strength, 0)
+            
             placeDetail.place.avgRating = totalRating / logsResponse.logs.length
-            console.log(`Place ${placeDetail.place.name} has avgRating: ${placeDetail.place.avgRating}`)
+            placeDetail.place.avgSweetness = totalSweetness / logsResponse.logs.length
+            placeDetail.place.avgStrength = totalStrength / logsResponse.logs.length
+            
+            console.log(`Place ${placeDetail.place.name} - Rating: ${placeDetail.place.avgRating.toFixed(1)}, Sweetness: ${placeDetail.place.avgSweetness.toFixed(1)}`)
           } else {
             // No logs yet, set to undefined
             placeDetail.place.avgRating = undefined
+            placeDetail.place.avgSweetness = undefined
+            placeDetail.place.avgStrength = undefined
           }
         } catch (logError) {
           console.error('Error fetching logs for place:', logError)
           placeDetail.place.avgRating = undefined
+          placeDetail.place.avgSweetness = undefined
+          placeDetail.place.avgStrength = undefined
         }
         
         return placeDetail
@@ -549,20 +593,22 @@ const loadRecommendations = async () => {
       const recDetails = await Promise.all(recDetailsPromises)
       recommendedPlaces.value = recDetails.map(detail => detail.place)
     } else {
-      // Fallback: show random places with calculated ratings
-      const placesWithRatings = await Promise.all(nearbyPlaces.value.slice(0, 3).map(async place => {
+      // Fallback: show random places with calculated ratings and sweetness
+      const placesWithStats = await Promise.all(nearbyPlaces.value.slice(0, 3).map(async place => {
         try {
           const logsResponse = await experienceLogAPI.getPlaceLogs(userStore.userId, place._id)
           if (logsResponse.logs && logsResponse.logs.length > 0) {
             const totalRating = logsResponse.logs.reduce((sum, log) => sum + log.rating, 0)
+            const totalSweetness = logsResponse.logs.reduce((sum, log) => sum + log.sweetness, 0)
             place.avgRating = totalRating / logsResponse.logs.length
+            place.avgSweetness = totalSweetness / logsResponse.logs.length
           }
         } catch (logError) {
           console.error('Error fetching logs for fallback place:', logError)
         }
         return place
       }))
-      recommendedPlaces.value = placesWithRatings
+      recommendedPlaces.value = placesWithStats
     }
   } catch (error) {
     console.error('Error loading recommendations:', error)
