@@ -253,8 +253,8 @@ export const userDirectoryAPI = {
 export const recommendationEngineAPI = {
   getRecommendations: async (userId: string): Promise<GetRecommendationsResponse> => {
     try {
-      const response = await apiClient.post<GetRecommendationsResponse>('/RecommendationEngine/get_recommendations', { userId })
-      return response.data
+      const response = await apiClient.post<{ places: string[] }>('/RecommendationEngine/get_recommendations', { userId })
+      return { recommendations: response.data.places || [] }
     } catch (error) {
       return handleError(error)
     }
