@@ -33,12 +33,18 @@ const apiClient = axios.create({
   }
 })
 
-// Error handler
+// Error handler (robust to non-object response.data)
 const handleError = (error: unknown): never => {
   if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<{ error: string }>
+    const axiosError = error as AxiosError<any>
     if (axiosError.response) {
-      throw new Error(axiosError.response.data.error || 'An error occurred')
+      const data = axiosError.response.data
+      const message = (data && typeof data === 'object' && 'error' in (data as any))
+        ? String((data as any).error)
+        : (typeof data === 'string' && data.trim().length > 0)
+          ? data
+          : 'An error occurred'
+      throw new Error(message)
     } else if (axiosError.request) {
       throw new Error('No response from server')
     }
@@ -187,11 +193,12 @@ export const placeDirectoryAPI = {
 export const userDirectoryAPI = {
   registerUser: async (data: RegisterUserRequest): Promise<RegisterUserResponse> => {
     try {
-      const response = await apiClient.post<RegisterUserResponse | { error: string }>('/UserDirectory/register_user', data)
-      if ('error' in response.data) {
-        throw new Error(response.data.error)
+      const response = await apiClient.post('/UserDirectory/register_user', data)
+      const payload = response.data
+      if (payload && typeof payload === 'object' && 'error' in (payload as any)) {
+        throw new Error(String((payload as any).error))
       }
-      return response.data
+      return payload as RegisterUserResponse
     } catch (error) {
       return handleError(error)
     }
