@@ -319,8 +319,30 @@ const toggleSave = async () => {
       console.log('PlaceDetailView: Place unsaved successfully')
     } else {
       console.log('PlaceDetailView: Saving place...')
-      await userDirectoryAPI.savePlace(userId, placeId)
-      console.log('PlaceDetailView: Save API call completed')
+      
+      try {
+        await userDirectoryAPI.savePlace(userId, placeId)
+        console.log('PlaceDetailView: Save API call completed')
+      } catch (saveError) {
+        // If save fails because user doesn't exist, register them and try again
+        if (saveError instanceof Error && saveError.message.includes('not found')) {
+          console.log('PlaceDetailView: User not found, registering...')
+          try {
+            await userDirectoryAPI.registerUser({
+              userId,
+              displayName: userStore.displayName || 'User',
+              email: userStore.email || `${userId}@temp.com`
+            })
+            console.log('PlaceDetailView: User registered, retrying save...')
+            await userDirectoryAPI.savePlace(userId, placeId)
+          } catch (registerError) {
+            console.error('PlaceDetailView: Failed to register user:', registerError)
+            throw saveError // Throw original error
+          }
+        } else {
+          throw saveError
+        }
+      }
       
       // Immediately verify the save worked
       console.log('PlaceDetailView: Verifying save...')
@@ -332,8 +354,7 @@ const toggleSave = async () => {
         isSaved.value = true
       } else {
         console.error('PlaceDetailView: ❌ Save FAILED - place not in saved list after save!')
-        console.error('PlaceDetailView: Backend did not persist the save. This is a BACKEND BUG.')
-        alert('Warning: Save may not have worked. Please check your backend logs.')
+        alert('Warning: Save may not have worked. Please try logging out and back in.')
         isSaved.value = true // Still show as saved in UI
       }
       
