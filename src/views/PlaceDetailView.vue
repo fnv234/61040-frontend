@@ -207,14 +207,21 @@ const loadPlace = async () => {
     console.log('Photos length:', place.value.photos?.length || 0)
     
     // Check if place is saved
-    if (userStore.isLoggedIn) {
+    if (userStore.isLoggedIn && userStore.userId) {
       try {
+        console.log('PlaceDetailView: Checking if place is saved for userId:', userStore.userId)
         const savedPlaces = await userDirectoryAPI.getSavedPlaces(userStore.userId)
-        isSaved.value = savedPlaces.places && savedPlaces.places.includes(route.params.id)
+        console.log('PlaceDetailView: Saved places response:', savedPlaces)
+        const placeId = String(route.params.id)
+        isSaved.value = savedPlaces.places && savedPlaces.places.includes(placeId)
+        console.log('PlaceDetailView: Is place saved?', isSaved.value)
       } catch (err) {
-        console.error('Error checking saved places:', err)
+        console.error('PlaceDetailView: Error checking saved places:', err)
         isSaved.value = false
       }
+    } else {
+      console.log('PlaceDetailView: User not logged in, cannot check saved status')
+      isSaved.value = false
     }
 
     // Load logs for this place
@@ -288,15 +295,37 @@ const formatDate = (timestamp) => {
 
 const toggleSave = async () => {
   try {
+    const userId = userStore.userId
+    const placeId = String(route.params.id)
+    
+    if (!userId) {
+      console.error('PlaceDetailView: Cannot save - no userId')
+      alert('Please log in to save places')
+      return
+    }
+    
+    if (!placeId) {
+      console.error('PlaceDetailView: Cannot save - no placeId')
+      alert('Invalid place')
+      return
+    }
+    
+    console.log('PlaceDetailView: toggleSave called', { userId, placeId, isSaved: isSaved.value })
+    
     if (isSaved.value) {
-      await userDirectoryAPI.unsavePlace(userStore.userId, route.params.id)
+      console.log('PlaceDetailView: Unsaving place...')
+      await userDirectoryAPI.unsavePlace(userId, placeId)
       isSaved.value = false
+      console.log('PlaceDetailView: Place unsaved successfully')
     } else {
-      await userDirectoryAPI.savePlace(userStore.userId, route.params.id)
+      console.log('PlaceDetailView: Saving place...')
+      await userDirectoryAPI.savePlace(userId, placeId)
       isSaved.value = true
+      console.log('PlaceDetailView: Place saved successfully')
     }
   } catch (err) {
-    alert('Error: ' + err.message)
+    console.error('PlaceDetailView: Error in toggleSave:', err)
+    alert('Error: ' + (err instanceof Error ? err.message : String(err)))
   }
 }
 
