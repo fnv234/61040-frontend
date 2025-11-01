@@ -727,21 +727,9 @@ const handleSignup = async () => {
     // Generate userId
     const userId = `user_${Date.now()}`
     
-    // Register user in backend with preferences
-    await userDirectoryAPI.registerUser({
-      userId,
-      displayName: signupForm.value.displayName,
-      email: signupForm.value.email
-    })
+    console.log('HomeView: Creating account with userId:', userId)
     
-    // Update preferences in backend
-    await userDirectoryAPI.updatePreferences({
-      userId,
-      sweetness: signupForm.value.sweetness,
-      strength: signupForm.value.strength
-    })
-    
-    // Save credentials and preferences locally
+    // Save credentials and preferences locally FIRST (so account exists even if backend fails)
     saveAccount(
       signupForm.value.email,
       signupForm.value.password,
@@ -753,12 +741,42 @@ const handleSignup = async () => {
         location: signupForm.value.location
       }
     )
+    console.log('HomeView: Account saved locally')
     
-    // Log in the user
+    // Log in the user immediately
     userStore.setUser(userId, signupForm.value.displayName, signupForm.value.email)
+    console.log('HomeView: User logged in')
+    
+    // Try to register in backend (don't fail signup if this times out)
+    try {
+      console.log('HomeView: Registering user in backend...')
+      await userDirectoryAPI.registerUser({
+        userId,
+        displayName: signupForm.value.displayName,
+        email: signupForm.value.email
+      })
+      console.log('HomeView: User registered in backend')
+      
+      // Try to update preferences (also non-critical)
+      try {
+        console.log('HomeView: Updating preferences in backend...')
+        await userDirectoryAPI.updatePreferences({
+          userId,
+          sweetness: signupForm.value.sweetness,
+          strength: signupForm.value.strength
+        })
+        console.log('HomeView: Preferences updated in backend')
+      } catch (prefError) {
+        console.warn('HomeView: Failed to update preferences in backend (non-critical):', prefError)
+      }
+    } catch (backendError) {
+      console.warn('HomeView: Failed to register in backend (non-critical):', backendError)
+      // User can still use the app, backend registration will happen on next login
+    }
+    
     successMessage.value = 'Account created successfully!'
   } catch (error) {
-    console.error('Error creating account:', error)
+    console.error('HomeView: Error creating account:', error)
     errorMessage.value = error.message || 'Failed to create account. Please try again.'
   } finally {
     isLoading.value = false
