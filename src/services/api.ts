@@ -240,7 +240,15 @@ export const userDirectoryAPI = {
     try {
       console.log('API: savePlace called with userId:', userId, 'placeId:', placeId)
       const response = await apiClient.post<Record<string, never>>('/UserDirectory/save_place', { userId, placeId })
-      console.log('API: savePlace response:', response.data)
+      console.log('API: savePlace response status:', response.status)
+      console.log('API: savePlace response data:', JSON.stringify(response.data, null, 2))
+      
+      // Check if there's an error in the response
+      if (response.data && typeof response.data === 'object' && 'error' in response.data) {
+        console.error('API: savePlace returned error:', response.data)
+        throw new Error(String((response.data as any).error))
+      }
+      
       return response.data
     } catch (error) {
       console.error('API: savePlace error:', error)
@@ -271,7 +279,9 @@ export const userDirectoryAPI = {
       console.log('API: getSavedPlaces called for userId:', userId)
       const response = await apiClient.post('/UserDirectory/_get_saved_places', { userId })
       console.log('API: getSavedPlaces raw response:', response)
-      console.log('API: getSavedPlaces response.data:', response.data)
+      console.log('API: getSavedPlaces response.data:', JSON.stringify(response.data, null, 2))
+      console.log('API: getSavedPlaces response.data type:', typeof response.data)
+      console.log('API: getSavedPlaces response.data keys:', response.data ? Object.keys(response.data) : 'null')
       
       // Handle different response formats from backend
       let placeIds: string[] = []
@@ -279,11 +289,16 @@ export const userDirectoryAPI = {
       if (response.data) {
         // Try different possible formats
         if (Array.isArray(response.data.placeIds)) {
+          console.log('API: Found placeIds array:', response.data.placeIds)
           placeIds = response.data.placeIds
         } else if (Array.isArray(response.data.places)) {
+          console.log('API: Found places array:', response.data.places)
           placeIds = response.data.places
         } else if (Array.isArray(response.data)) {
+          console.log('API: response.data is array:', response.data)
           placeIds = response.data
+        } else {
+          console.warn('API: Could not find place IDs in response. Response structure:', response.data)
         }
       }
       

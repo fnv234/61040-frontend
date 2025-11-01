@@ -320,7 +320,23 @@ const toggleSave = async () => {
     } else {
       console.log('PlaceDetailView: Saving place...')
       await userDirectoryAPI.savePlace(userId, placeId)
-      isSaved.value = true
+      console.log('PlaceDetailView: Save API call completed')
+      
+      // Immediately verify the save worked
+      console.log('PlaceDetailView: Verifying save...')
+      const verification = await userDirectoryAPI.getSavedPlaces(userId)
+      console.log('PlaceDetailView: Verification result:', verification)
+      
+      if (verification.places && verification.places.includes(placeId)) {
+        console.log('PlaceDetailView: ✅ Save verified - place is in saved list')
+        isSaved.value = true
+      } else {
+        console.error('PlaceDetailView: ❌ Save FAILED - place not in saved list after save!')
+        console.error('PlaceDetailView: Backend did not persist the save. This is a BACKEND BUG.')
+        alert('Warning: Save may not have worked. Please check your backend logs.')
+        isSaved.value = true // Still show as saved in UI
+      }
+      
       console.log('PlaceDetailView: Place saved successfully')
     }
   } catch (err) {
