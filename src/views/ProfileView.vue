@@ -12,7 +12,7 @@
       <!-- User Info -->
       <div class="bg-white rounded-lg shadow-md p-6 hover-lift animate-fade-in-up">
         <h2 class="text-xl font-semibold mb-4 text-dark-green">Account Information</h2>
-        <div class="space-y-2">
+        <div class="space-y-2 mb-4">
           <div>
             <span class="text-gray-500">Display Name:</span>
             <span class="ml-2 font-medium">{{ userStore.displayName }}</span>
@@ -22,9 +22,111 @@
             <span class="ml-2 font-medium">{{ userStore.email }}</span>
           </div>
         </div>
+        
+        <!-- Preferences Display -->
+        <div class="border-t pt-4 mb-4">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-decorative text-dark-green flex items-center gap-2">
+              <span class="animate-pulse-soft">✨</span> My Matcha Taste Profile
+            </h3>
+            <button
+              v-if="!editingPreferences"
+              @click="editingPreferences = true"
+              class="px-3 py-1 bg-matcha-100 text-matcha-700 rounded-lg hover:bg-matcha-200 transition-all text-xs font-medium btn-cute"
+            >
+              ✏️ Edit
+            </button>
+            <button
+              v-else
+              @click="savePreferences"
+              class="px-3 py-1 bg-brighter-green text-white rounded-lg hover:bg-matcha-green transition-all text-xs font-medium btn-cute hover-grow"
+            >
+              ✓ Save
+            </button>
+          </div>
+          <div class="bg-gradient-to-br from-matcha-50/50 to-lighter-dull-green/30 rounded-xl p-4 border-2 border-green-gray/20">
+            <div v-if="!editingPreferences" class="flex gap-6 justify-center">
+              <div class="flex flex-col items-center group">
+                <div class="relative">
+                  <div class="w-20 h-20 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 flex flex-col items-center justify-center shadow-lg group-hover:shadow-xl transition-all group-hover:scale-110 animate-bounce-gentle border-3 border-amber-300">
+                    <span class="text-3xl font-bold text-amber-700">{{ userStore.sweetness }}</span>
+                    <span class="text-xs text-amber-600 font-medium">/5</span>
+                  </div>
+                  <div class="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center shadow-md animate-float">
+                    🍯
+                  </div>
+                </div>
+                <p class="text-sm text-gray-700 mt-3 font-medium">Sweetness</p>
+              </div>
+              
+              <div class="flex flex-col items-center group">
+                <div class="relative">
+                  <div class="w-20 h-20 rounded-full bg-gradient-to-br from-matcha-100 to-matcha-200 flex flex-col items-center justify-center shadow-lg group-hover:shadow-xl transition-all group-hover:scale-110 animate-bounce-gentle border-3 border-matcha-300" style="animation-delay: 0.15s">
+                    <span class="text-3xl font-bold text-matcha-700">{{ userStore.strength }}</span>
+                    <span class="text-xs text-matcha-600 font-medium">/5</span>
+                  </div>
+                  <div class="absolute -top-2 -right-2 w-8 h-8 bg-green-400 rounded-full flex items-center justify-center shadow-md animate-float" style="animation-delay: 0.3s">
+                    💪
+                  </div>
+                </div>
+                <p class="text-sm text-gray-700 mt-3 font-medium">Strength</p>
+              </div>
+            </div>
+            
+            <!-- Edit Mode -->
+            <div v-else class="space-y-6 py-2">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    🍯 Sweetness Preference
+                  </label>
+                  <div class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 flex flex-col items-center justify-center shadow-md border-2 border-amber-300">
+                    <span class="text-xl font-bold text-amber-700">{{ tempSweetness }}</span>
+                    <span class="text-xs text-amber-600">/5</span>
+                  </div>
+                </div>
+                <input
+                  v-model.number="tempSweetness"
+                  type="range"
+                  min="1"
+                  max="5"
+                  class="w-full h-3 bg-amber-100 rounded-lg appearance-none cursor-pointer accent-amber-500 hover:accent-amber-600 transition-all"
+                />
+                <div class="flex justify-between text-xs text-gray-500 mt-1 px-1">
+                  <span>Not Sweet</span>
+                  <span>Very Sweet</span>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    💪 Strength Preference
+                  </label>
+                  <div class="w-12 h-12 rounded-full bg-gradient-to-br from-matcha-100 to-matcha-200 flex flex-col items-center justify-center shadow-md border-2 border-matcha-300">
+                    <span class="text-xl font-bold text-matcha-700">{{ tempStrength }}</span>
+                    <span class="text-xs text-matcha-600">/5</span>
+                  </div>
+                </div>
+                <input
+                  v-model.number="tempStrength"
+                  type="range"
+                  min="1"
+                  max="5"
+                  class="w-full h-3 bg-matcha-100 rounded-lg appearance-none cursor-pointer accent-matcha-600 hover:accent-matcha-700 transition-all"
+                />
+                <div class="flex justify-between text-xs text-gray-500 mt-1 px-1">
+                  <span>Mild</span>
+                  <span>Strong</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <button
           @click="userStore.logout()"
-          class="mt-4 px-4 py-2 bg-cherry-blossom text-brown rounded-lg hover:bg-darker-light-pink transition-all font-medium btn-cute hover-grow"
+          class="mt-2 px-4 py-2 bg-cherry-blossom text-brown rounded-lg hover:bg-darker-light-pink transition-all font-medium btn-cute hover-grow"
         >
           🚪 Logout
         </button>
@@ -216,6 +318,11 @@ const profileSummary = ref<string>('')
 const loadingSaved = ref<boolean>(false)
 const loadingRecs = ref<boolean>(false)
 const loadingSummary = ref<boolean>(false)
+
+// Preferences editing state
+const editingPreferences = ref<boolean>(false)
+const tempSweetness = ref<number>(3)
+const tempStrength = ref<number>(3)
 
 // Location and distance helpers
 const userLocation = ref<[number, number] | null>(null)
@@ -582,11 +689,43 @@ const loadCachedSummary = () => {
   }
 }
 
+// Save preferences
+const savePreferences = async () => {
+  userStore.updatePreferences(tempSweetness.value, tempStrength.value)
+  
+  // Try to update in backend
+  if (userStore.userId) {
+    try {
+      await userDirectoryAPI.updatePreferences(userStore.userId, {
+        sweetness: tempSweetness.value,
+        strength: tempStrength.value
+      })
+      console.log('ProfileView: Preferences updated in backend')
+    } catch (error) {
+      console.warn('ProfileView: Failed to update preferences in backend:', error)
+    }
+  }
+  
+  editingPreferences.value = false
+}
+
 onMounted(() => {
   getUserLocation()
   loadSavedPlaces()
   loadRecommendations()
   loadCachedSummary()
+  
+  // Initialize temp values with current preferences
+  tempSweetness.value = userStore.sweetness
+  tempStrength.value = userStore.strength
+})
+
+// Watch for editing mode to reset temp values
+watch(editingPreferences, (isEditing) => {
+  if (isEditing) {
+    tempSweetness.value = userStore.sweetness
+    tempStrength.value = userStore.strength
+  }
 })
 
 // React to login/sign-up: when userId becomes available, load data
@@ -610,9 +749,11 @@ const getPhotoUrl = (photo: string) => {
     return photo
   }
   
-  // If it's a relative path starting with /, assume it's from the backend
+  // If it's a relative path starting with /, prefix with backend origin
   if (photo && photo.startsWith('/')) {
-    return `http://localhost:8000${photo}`
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
+    const baseOrigin = API_BASE.startsWith('http') ? new URL(API_BASE).origin : window.location.origin
+    return `${baseOrigin}${photo}`
   }
   
   // Otherwise, try to construct a full URL

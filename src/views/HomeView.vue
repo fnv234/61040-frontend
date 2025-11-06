@@ -205,23 +205,103 @@
           :yGap="36"
           :customStyle="{ position: 'absolute', height: '100%' }"
         />
-        <div class="relative z-10 flex items-center justify-between p-6 animate-fade-in-up">
-          <router-link 
-            to="/profile" 
-            class="flex items-center gap-3 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-lg shadow-md hover:shadow-lg transition-all hover-lift"
-          >
-            <div class="w-10 h-10 bg-matcha-100 rounded-full flex items-center justify-center">
-              <span class="text-xl">👤</span>
-            </div>
-            <span class="font-medium">{{ userStore.displayName }}</span>
-          </router-link>
+        <div class="relative z-10 p-6 animate-fade-in-up">
+          <div class="flex items-center justify-between mb-4">
+            <router-link 
+              to="/profile" 
+              class="flex items-center gap-3 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-lg shadow-md hover:shadow-lg transition-all hover-lift"
+            >
+              <div class="w-10 h-10 bg-matcha-100 rounded-full flex items-center justify-center">
+                <span class="text-xl">👤</span>
+              </div>
+              <span class="font-medium">{{ userStore.displayName }}</span>
+            </router-link>
+            
+            <button
+              @click="getUserLocation"
+              class="px-4 py-2 bg-brighter-green text-white rounded-lg hover:bg-matcha-green transition-all text-sm font-medium btn-cute hover-grow"
+            >
+              📍 Use My Location
+            </button>
+          </div>
           
-          <button
-            @click="getUserLocation"
-            class="px-4 py-2 bg-brighter-green text-white rounded-lg hover:bg-matcha-green transition-all text-sm font-medium btn-cute hover-grow"
-          >
-            📍 Use My Location
-          </button>
+          <!-- User Preferences Display -->
+          <div class="bg-gradient-to-br from-white/90 to-matcha-50/80 backdrop-blur-sm rounded-lg shadow-md p-3 border border-matcha-100 hover-lift mx-auto max-w-xs -mt-4">
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="text-xs font-decorative text-dark-green flex items-center gap-1">
+                <span class="animate-pulse-soft">✨</span> My Matcha Taste
+              </h3>
+              <div>
+                <button
+                  v-if="!editingHomePrefs"
+                  @click="editingHomePrefs = true"
+                  class="px-1 py-0.5 bg-matcha-100 text-matcha-700 rounded-md hover:bg-matcha-200 transition-all text-[10px] font-medium"
+                >
+                  ✏️ Edit
+                </button>
+                <button
+                  v-else
+                  @click="saveHomePreferences"
+                  class="px-1 py-0.5 bg-brighter-green text-white rounded-md hover:bg-matcha-green transition-all text-[10px] font-medium"
+                >
+                  ✓ Save
+                </button>
+              </div>
+            </div>
+
+            <!-- View mode -->
+            <div v-if="!editingHomePrefs" class="flex gap-2 justify-center">
+              <div class="flex flex-col items-center group">
+                <div class="relative">
+                  <div class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 flex flex-col items-center justify-center shadow-md group-hover:shadow-lg transition-all group-hover:scale-110 animate-bounce-gentle border border-amber-300">
+                    <span class="text-lg font-bold text-amber-700">{{ userStore.sweetness }}</span>
+                    <span class="text-[10px] text-amber-600 font-medium">/5</span>
+                  </div>
+                  <div class="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center text-[10px] animate-float">
+                    🍯
+                  </div>
+                </div>
+                <p class="text-[11px] text-gray-600 mt-1 font-medium">Sweetness</p>
+              </div>
+              
+              <div class="flex flex-col items-center group">
+                <div class="relative">
+                  <div class="w-12 h-12 rounded-full bg-gradient-to-br from-matcha-100 to-matcha-200 flex flex-col items-center justify-center shadow-md group-hover:shadow-lg transition-all group-hover:scale-110 animate-bounce-gentle border border-matcha-300" style="animation-delay: 0.1s">
+                    <span class="text-lg font-bold text-matcha-700">{{ userStore.strength }}</span>
+                    <span class="text-[10px] text-matcha-600 font-medium">/5</span>
+                  </div>
+                  <div class="absolute -top-1 -right-1 w-5 h-5 bg-green-400 rounded-full flex items-center justify-center text-[10px] animate-float" style="animation-delay: 0.2s">
+                    💪
+                  </div>
+                </div>
+                <p class="text-[11px] text-gray-600 mt-1 font-medium">Strength</p>
+              </div>
+            </div>
+
+            <!-- Edit mode -->
+            <div v-else class="space-y-3 mt-1">
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-[11px] font-medium text-gray-700 flex items-center gap-1">🍯 Sweetness</label>
+                  <div class="w-9 h-9 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 flex flex-col items-center justify-center shadow-md border border-amber-300">
+                    <span class="text-sm font-bold text-amber-700">{{ tempSweetHome }}</span>
+                    <span class="text-[9px] text-amber-600">/5</span>
+                  </div>
+                </div>
+                <input v-model.number="tempSweetHome" type="range" min="1" max="5" class="w-full h-2.5 bg-amber-100 rounded-lg appearance-none cursor-pointer accent-amber-500 hover:accent-amber-600 transition-all" />
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-[11px] font-medium text-gray-700 flex items-center gap-1">💪 Strength</label>
+                  <div class="w-9 h-9 rounded-full bg-gradient-to-br from-matcha-100 to-matcha-200 flex flex-col items-center justify-center shadow-md border border-matcha-300">
+                    <span class="text-sm font-bold text-matcha-700">{{ tempStrengthHome }}</span>
+                    <span class="text-[9px] text-matcha-600">/5</span>
+                  </div>
+                </div>
+                <input v-model.number="tempStrengthHome" type="range" min="1" max="5" class="w-full h-2.5 bg-matcha-100 rounded-lg appearance-none cursor-pointer accent-matcha-600 hover:accent-matcha-700 transition-all" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -303,7 +383,7 @@
       <!-- Main Content: Map + Sidebar -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- Map Section (2/3 width) -->
-        <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-4">
+        <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-4 h-[600px]">
           <MapView 
             :places="filteredPlaces" 
             :userLocation="userLocation"
@@ -414,6 +494,55 @@ const filterSweetness = ref('')
 const filterStyle = ref('')
 const filteredPlaces = ref([])
 const showFilters = ref(false)
+
+// Preferences editing (Home view)
+const editingHomePrefs = ref(false)
+const tempSweetHome = ref(3)
+const tempStrengthHome = ref(3)
+
+const saveHomePreferences = async () => {
+  userStore.updatePreferences(tempSweetHome.value, tempStrengthHome.value)
+  // Persist to local demo account store
+  const accounts = getStoredAccounts()
+  const email = userStore.email
+  if (email && accounts[email]) {
+    accounts[email].preferences = {
+      ...(accounts[email].preferences || {}),
+      sweetness: tempSweetHome.value,
+      strength: tempStrengthHome.value
+    }
+    localStorage.setItem('matcha_accounts', JSON.stringify(accounts))
+  }
+  // Try backend
+  if (userStore.userId) {
+    try {
+      await userDirectoryAPI.updatePreferences(
+        userStore.userId,
+        {
+          sweetness: tempSweetHome.value,
+          strength: tempStrengthHome.value
+        }
+      )
+    } catch (e) {
+      console.warn('HomeView: Failed to update preferences in backend', e)
+    }
+  }
+  editingHomePrefs.value = false
+}
+
+// Initialize temp with store values on mount
+onMounted(() => {
+  tempSweetHome.value = userStore.sweetness
+  tempStrengthHome.value = userStore.strength
+})
+
+// Reset temps when toggling into edit mode
+watch(editingHomePrefs, (isEditing) => {
+  if (isEditing) {
+    tempSweetHome.value = userStore.sweetness
+    tempStrengthHome.value = userStore.strength
+  }
+})
 
 // Get user's location
 const getUserLocation = () => {
@@ -739,8 +868,10 @@ const handleLogin = async () => {
       console.log('User may already exist in backend:', error)
     }
     
-    // Log in the user
-    userStore.setUser(account.userId, account.displayName, loginForm.value.email)
+    // Log in the user with preferences
+    console.log('HomeView: Logging in with preferences:', account.preferences)
+    userStore.setUser(account.userId, account.displayName, loginForm.value.email, account.preferences)
+    console.log('HomeView: After setUser, userStore preferences:', { sweetness: userStore.sweetness, strength: userStore.strength })
     successMessage.value = 'Successfully logged in!'
   } catch (error) {
     console.error('Error logging in:', error)
@@ -786,8 +917,14 @@ const handleSignup = async () => {
     )
     console.log('HomeView: Account saved locally')
     
-    // Log in the user immediately
-    userStore.setUser(userId, signupForm.value.displayName, signupForm.value.email)
+    // Log in the user immediately with preferences
+    const prefs = {
+      sweetness: signupForm.value.sweetness,
+      strength: signupForm.value.strength
+    }
+    console.log('HomeView: Signing up with preferences:', prefs)
+    userStore.setUser(userId, signupForm.value.displayName, signupForm.value.email, prefs)
+    console.log('HomeView: After setUser, userStore preferences:', { sweetness: userStore.sweetness, strength: userStore.strength })
     console.log('HomeView: User logged in')
     
     // Try to register in backend (don't fail signup if this times out)

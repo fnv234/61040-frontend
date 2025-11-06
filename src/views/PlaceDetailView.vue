@@ -256,9 +256,11 @@ const getPhotoUrl = (photo) => {
     return photo
   }
   
-  // If it's a relative path starting with /, assume it's from the backend
+  // If it's a relative path starting with /, prefix with backend origin
   if (photo && photo.startsWith('/')) {
-    return `http://localhost:8000${photo}`
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
+    const baseOrigin = API_BASE.startsWith('http') ? new URL(API_BASE).origin : window.location.origin
+    return `${baseOrigin}${photo}`
   }
   
   // Otherwise, try to construct a full URL
@@ -276,35 +278,51 @@ const handleImageError = (event, originalUrl) => {
 
 const loadPlaceLogs = async () => {
   try {
-    // Get logs for this place - pass userId to get all logs for this place
-    const response = await experienceLogAPI.getPlaceLogs(userStore.userId, route.params.id)
-    if (response.logs && response.logs.length > 0) {
-      placeLogs.value = response.logs
+    // Get logs for this place - pass userId to get this user's logs for the place
+    let response = await experienceLogAPI.getPlaceLogs(userStore.userId, route.params.id)
+    let logs = response.logs || []
+
+    // Fallback: if no logs returned, try fetching all user logs and filter by placeId
+    if ((!logs || logs.length === 0) && userStore.userId) {
+      try {
+        const userLogs = await experienceLogAPI.getUserLogs(userStore.userId)
+        logs = (userLogs.logs || []).filter(l => String(l.placeId) === String(route.params.id))
+      } catch (fallbackErr) {
+        console.warn('PlaceDetailView: Fallback to user logs failed:', fallbackErr)
+      }
+    }
+
+    if (logs && logs.length > 0) {
+      placeLogs.value = logs
       
       // Calculate averages
-      const totalRating = response.logs.reduce((sum, log) => sum + log.rating, 0)
-      const totalSweetness = response.logs.reduce((sum, log) => sum + log.sweetness, 0)
-      const totalStrength = response.logs.reduce((sum, log) => sum + log.strength, 0)
+      const totalRating = logs.reduce((sum, log) => sum + (log.rating || 0), 0)
+      const totalSweetness = logs.reduce((sum, log) => sum + (log.sweetness || 0), 0)
+      const totalStrength = logs.reduce((sum, log) => sum + (log.strength || 0), 0)
       
-      averageRating.value = totalRating / response.logs.length
-      averageSweetness.value = totalSweetness / response.logs.length
-      averageStrength.value = totalStrength / response.logs.length
+      averageRating.value = logs.length ? totalRating / logs.length : 0
+      averageSweetness.value = logs.length ? totalSweetness / logs.length : 0
+      averageStrength.value = logs.length ? totalStrength / logs.length : 0
       
-      // Merge log photos into place photos gallery
+      // Merge log photos into place photos gallery, supporting both 'photo' and 'photos'[]
       if (place.value) {
-        const logPhotos = response.logs
-          .filter(log => log.photo)
-          .map(log => log.photo)
-        
-        // Initialize photos array if it doesn't exist
+        const collected = []
+        logs.forEach((log) => {
+          // Handle both photo (single) and photos (array) fields
+          if (log.photo) collected.push(log.photo)
+          if (Array.isArray(log.photos)) {
+            collected.push(...log.photos.filter(p => p)) // Filter out any null/undefined
+          }
+        })
+
         if (!place.value.photos) {
           place.value.photos = []
         }
-        
-        // Add log photos that aren't already in the gallery
-        logPhotos.forEach(photo => {
-          if (!place.value.photos.includes(photo)) {
-            place.value.photos.push(photo)
+
+        // Add collected photos that aren't already in the place's photos
+        collected.forEach((p) => {
+          if (p && !place.value.photos.includes(p)) {
+            place.value.photos.push(p)
           }
         })
         

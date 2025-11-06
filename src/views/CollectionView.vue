@@ -94,7 +94,7 @@
           class="bg-white rounded-lg shadow-md overflow-hidden hover-lift stagger-item"
         >
           <div v-if="place.photos && place.photos.length > 0" class="h-40 bg-gray-200">
-            <img :src="place.photos[0]" :alt="place.name" class="w-full h-full object-cover" />
+            <img :src="getPhotoUrl(place.photos[0])" :alt="place.name" class="w-full h-full object-cover" />
           </div>
           <div v-else class="h-40 bg-matcha-100 flex items-center justify-center">
             <span class="text-5xl animate-pulse-soft">🍵</span>
@@ -193,9 +193,10 @@
             <img
               v-for="(photo, index) in log.photos"
               :key="index"
-              :src="photo"
+              :src="getPhotoUrl(photo)"
               :alt="`Log photo ${index + 1}`"
               class="w-20 h-20 object-cover rounded-md"
+              @error="handleImageError"
             />
           </div>
 
@@ -229,6 +230,16 @@ const filterRating = ref('')
 
 const savedPlaces = ref<any[]>([])
 const logs = ref<any[]>([])
+
+const handleImageError = (event: Event | string) => {
+  if (event instanceof Event) {
+    const target = event.target as HTMLImageElement;
+    console.error('Image failed to load:', target.src);
+    target.style.display = 'none'; // Hide broken images
+  } else {
+    console.error('Image failed to load:', event);
+  }
+}
 
 // Filtered saved places
 const filteredSavedPlaces = computed(() => {
@@ -294,6 +305,26 @@ const loadSavedPlaces = async () => {
           console.log('CollectionView: Fetching details for placeId:', placeId)
           const detail = await placeDirectoryAPI.getDetails(placeId)
           console.log('CollectionView: Got details for', detail.place.name)
+          
+          // Merge this user's log photos into the place photos for thumbnail display
+          try {
+            const userId = userStore.userId
+            if (userId) {
+              const logsResponse = await experienceLogAPI.getPlaceLogs(userId, placeId)
+              if (logsResponse.logs && logsResponse.logs.length > 0) {
+                const logPhotos = logsResponse.logs
+                  .filter((log: any) => !!log.photo)
+                  .map((log: any) => log.photo as string)
+                if (!detail.place.photos) detail.place.photos = []
+                logPhotos.forEach((p: string) => {
+                  if (!detail.place.photos!.includes(p)) detail.place.photos!.push(p)
+                })
+              }
+            }
+          } catch (mergeErr) {
+            console.warn('CollectionView: Could not merge log photos for place', placeId, mergeErr)
+          }
+          
           return detail
         } catch (err) {
           console.error('CollectionView: Failed to fetch details for placeId:', placeId, err)
@@ -341,18 +372,26 @@ const loadLogs = async () => {
             const placeDetail = await placeDirectoryAPI.getDetails(log.placeId)
             return {
               ...log,
-              placeName: placeDetail.place.name
+              placeName: placeDetail.place.name,
+              // Handle both photo (single) and photos (array) fields
+              photos: Array.isArray(log.photos) ? log.photos : 
+                    (log.photo ? [log.photo] : []),
+              // Ensure we have the placeId for navigation
+              placeId: log.placeId
             }
           } catch {
             return {
               ...log,
-              placeName: 'Unknown Place'
+              placeName: 'Unknown Place',
+              photos: Array.isArray(log.photos) ? log.photos : 
+                    (log.photo ? [log.photo] : [])
             }
           }
         })
       )
       logs.value = enrichedLogs
-      console.log('CollectionView: Loaded', logs.value.length, 'logs')
+      console.log('CollectionView: Loaded', logs.value.length, 'logs with photos:', 
+        logs.value.flatMap(l => l.photos).length)
     } else {
       console.log('CollectionView: No logs found')
       logs.value = []
@@ -363,7 +402,6 @@ const loadLogs = async () => {
     logs.value = []
   } finally {
     loadingLogs.value = false
-    console.log('CollectionView: loadLogs complete, loadingLogs:', loadingLogs.value)
   }
 }
 
@@ -438,4 +476,20 @@ watch(() => userStore.userId, (newUserId: string | null, oldUserId: string | nul
     loadLogs()
   }
 })
+
+// Helper to normalize photo URLs (absolute, data:, or backend-relative)
+const getPhotoUrl = (photo: string) => {
+  if (photo && (photo.startsWith('http://') || photo.startsWith('https://'))) {
+    return photo
+  }
+  if (photo && photo.startsWith('data:')) {
+    return photo
+  }
+  if (photo && photo.startsWith('/')) {
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
+    const baseOrigin = API_BASE.startsWith('http') ? new URL(API_BASE).origin : window.location.origin
+    return `${baseOrigin}${photo}`
+  }
+  return photo || ''
+}
 </script>
