@@ -136,7 +136,7 @@ onUnmounted(() => {
 .map-container {
   position: relative;
   width: 100%;
-  height: 600px;
+  height: 100%;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
