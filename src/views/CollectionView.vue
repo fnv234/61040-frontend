@@ -227,12 +227,20 @@
             </div>
           </div>
 
-              <button
-                @click="deleteLog(log._id)"
-                class="mt-3 px-4 py-2 text-sm bg-cherry-blossom text-brown rounded-lg hover:bg-darker-light-pink font-medium transition-all hover-grow"
-              >
-                🗑️ Delete Log
-              </button>
+              <div class="mt-3 flex gap-2">
+                <button
+                  @click="editLog(log)"
+                  class="px-4 py-2 text-sm bg-matcha-500 text-white rounded-lg hover:bg-matcha-600 font-medium transition-all hover-grow"
+                >
+                  ✏️ Edit Log
+                </button>
+                <button
+                  @click="deleteLog(log._id)"
+                  class="px-4 py-2 text-sm bg-cherry-blossom text-brown rounded-lg hover:bg-darker-light-pink font-medium transition-all hover-grow"
+                >
+                  🗑️ Delete Log
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -258,6 +266,15 @@ const filterQuery = ref('')
 const filterRating = ref('')
 
 const savedPlaces = ref<any[]>([])
+
+// Edit existing log by routing to the log form with prefilled data
+const editLog = (log: any) => {
+  try {
+    // Store the log to edit in sessionStorage to avoid adding new API endpoints
+    sessionStorage.setItem('editingLog', JSON.stringify(log))
+  } catch {}
+  router.push(`/places/${log.placeId}/log?edit=1`)
+}
 const logs = ref<any[]>([])
 
 const handleImageError = (event: Event | string, photoUrl?: string) => {

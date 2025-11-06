@@ -200,6 +200,8 @@ const placeName = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const isEditing = ref(false)
+const currentLogId = ref('')
 
 const logForm = ref({
   rating: 3,
@@ -211,12 +213,21 @@ const logForm = ref({
 
 const photoUrlInput = ref('')
 
-// Load place name
-const loadPlaceName = async () => {
+// Load place name and check for existing log
+const loadPlaceData = async () => {
   try {
     const placeId = route.params.id as string
     const response = await placeDirectoryAPI.getDetails(placeId)
     placeName.value = response.place.name
+    
+    // If navigating from CollectionView with edit flag, hydrate form from sessionStorage
+    const editFlag = route.query && (route.query.edit === '1' || route.query.edit === 'true')
+    if (editFlag) {
+      const saved = sessionStorage.getItem('editingLog')
+      if (saved) {
+        await loadExistingLog(JSON.parse(saved))
+      }
+    }
   } catch (error) {
     console.error('Error loading place:', error)
     placeName.value = 'Unknown Place'
@@ -315,7 +326,28 @@ const removePhoto = (index: number) => {
   logForm.value.photos.splice(index, 1)
 }
 
-// Submit log
+// Load an existing log for editing (from pre-fetched state)
+const loadExistingLog = async (log: any) => {
+  try {
+    isLoading.value = true
+    logForm.value = {
+      rating: log.rating,
+      sweetness: log.sweetness,
+      strength: log.strength,
+      notes: log.notes || '',
+      photos: log.photo ? [log.photo] : []
+    }
+    currentLogId.value = log._id
+    isEditing.value = true
+  } catch (error) {
+    console.error('Error loading log:', error)
+    errorMessage.value = 'Failed to load log for editing'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Submit log (handles both create and update)
 const submitLog = async () => {
   isLoading.value = true
   errorMessage.value = ''
@@ -335,16 +367,6 @@ const submitLog = async () => {
     // Take the first photo from the array (API only supports single photo)
     const photo = logForm.value.photos[0] || undefined;
 
-    console.log('LogEntryView: Submitting log with data:', {
-      userId,
-      placeId,
-      rating: logForm.value.rating,
-      sweetness: logForm.value.sweetness,
-      strength: logForm.value.strength,
-      hasPhoto: !!photo,
-      hasNotes: !!logForm.value.notes
-    })
-
     const logData = {
       userId,
       placeId,
@@ -355,23 +377,36 @@ const submitLog = async () => {
       photo
     }
 
-    console.log('LogEntryView: Calling createLog API...')
-    const result = await experienceLogAPI.createLog(logData)
-    console.log('LogEntryView: createLog successful, result:', result)
-
-    // Skip recommendation refresh to prevent timeout
-    // Recommendations will be refreshed on next page load
-    console.log('LogEntryView: Skipping recommendation refresh to prevent timeout')
-
-    successMessage.value = 'Experience logged successfully!'
+    let result
+    if (isEditing.value && currentLogId.value) {
+      console.log('Updating existing log:', currentLogId.value)
+      result = await experienceLogAPI.updateLog({
+        logId: currentLogId.value,
+        rating: logForm.value.rating,
+        sweetness: logForm.value.sweetness,
+        strength: logForm.value.strength,
+        notes: logForm.value.notes || undefined,
+        photo
+      })
+      successMessage.value = 'Log updated successfully!'
+    } else {
+      console.log('Creating new log')
+      result = await experienceLogAPI.createLog(logData)
+      successMessage.value = 'Experience logged successfully!'
+    }
     
-    // Redirect after short delay - use replace to avoid back button issues
+    console.log('Log operation successful:', result)
+    
+    // Save the log to sessionStorage for edit flow
+    sessionStorage.setItem('editingLog', JSON.stringify(result))
+
+    // Redirect after short delay
     setTimeout(() => {
       router.replace(`/places/${placeId}`)
     }, 1500)
 
   } catch (error: any) {
-    console.error('Error submitting log:', error)
+    console.error('Error saving log:', error)
     errorMessage.value = error.message || 'Failed to save log. Please try again.'
   } finally {
     isLoading.value = false
@@ -379,6 +414,6 @@ const submitLog = async () => {
 }
 
 onMounted(() => {
-  loadPlaceName()
+  loadPlaceData()
 })
 </script>
