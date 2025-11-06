@@ -518,62 +518,64 @@ watch(() => userStore.userId, (newUserId: string | null, oldUserId: string | nul
 
 // Helper to normalize photo URLs (absolute, data:, or backend-relative)
 const getPhotoUrl = (photo: string) => {
-  console.log('Processing photo URL:', {
-    original: photo,
-    startsWithData: photo?.startsWith('data:'),
-    startsWithHttp: photo?.startsWith('http'),
-    startsWithSlash: photo?.startsWith('/')
-  });
-  
   if (!photo) {
     console.warn('Empty photo URL provided');
     return '';
   }
   
-  // Handle base64 encoded images
+  // 1. Handle base64 encoded images
   if (photo.startsWith('data:image')) {
-    console.log('Returning base64 image data');
     return photo;
   }
   
-  // Handle absolute URLs
+  // 2. Handle absolute URLs (http/https)
   if (photo.startsWith('http://') || photo.startsWith('https://')) {
-    console.log('Returning absolute URL:', photo);
     return photo;
   }
   
-  // Handle relative URLs
-  if (photo.startsWith('/')) {
-    // If it's already a full URL but missing protocol
-    if (photo.startsWith('//')) {
-      const url = window.location.protocol + photo;
-      console.log('Returning protocol-relative URL:', url);
-      return url;
-    }
-    
-    // Handle API-relative URLs
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
-    const baseOrigin = API_BASE.startsWith('http') ? 
-      new URL(API_BASE).origin : 
-      window.location.origin;
-      
-    // Ensure we don't double up on the base path
-    const basePath = API_BASE.replace(/^https?:\/\/[^/]+/, '');
-    const normalizedPath = photo.startsWith(basePath) ? photo : `${basePath}${photo}`;
-    const finalUrl = `${baseOrigin}${normalizedPath}`;
-    
-    console.log('Constructed URL from relative path:', {
-      API_BASE,
-      baseOrigin,
-      basePath,
-      normalizedPath,
-      finalUrl
-    });
-    
-    return finalUrl;
+  // 3. Handle protocol-relative URLs (//example.com)
+  if (photo.startsWith('//')) {
+    return window.location.protocol + photo;
   }
   
-  console.log('Returning photo as-is (unknown format):', photo);
-  return photo;
+  // 4. Handle relative URLs
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+  
+  // If the photo path already includes the API_BASE, use it as is
+  if (API_BASE && photo.includes(API_BASE)) {
+    return photo.startsWith('http') ? photo : `${window.location.origin}${photo}`;
+  }
+  
+  // 5. Construct the full URL based on the environment
+  let finalUrl = photo;
+  
+  // For production, ensure we're using the correct base URL
+  if (import.meta.env.PROD) {
+    // If it's a relative path, prepend the current origin
+    if (photo.startsWith('/')) {
+      finalUrl = `${window.location.origin}${photo}`;
+    } 
+    // If it's a relative path without leading slash, prepend API base URL
+    else if (!photo.startsWith('http')) {
+      const baseUrl = API_BASE.startsWith('http') ? 
+        API_BASE : 
+        `${window.location.origin}${API_BASE}`;
+      finalUrl = `${baseUrl}${photo.startsWith('/') ? '' : '/'}${photo}`;
+    }
+  } 
+  // For development, use the API_BASE from environment
+  else {
+    if (photo.startsWith('/')) {
+      const baseUrl = API_BASE.startsWith('http') ? 
+        new URL(API_BASE).origin : 
+        window.location.origin;
+      finalUrl = `${baseUrl}${photo}`;
+    } else if (!photo.startsWith('http')) {
+      finalUrl = `${API_BASE}${photo.startsWith('/') ? '' : '/'}${photo}`;
+    }
+  }
+  
+  console.log('Processed photo URL:', { original: photo, finalUrl, env: import.meta.env.MODE });
+  return finalUrl;
 };
 </script>

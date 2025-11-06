@@ -241,18 +241,38 @@ const handlePhotoUpload = async (event: Event) => {
   
   for (const file of filesToProcess) {
     try {
-      // Convert file to base64 for storage
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result as string)
-        reader.onerror = (e) => {
-          console.error('FileReader error:', e)
-          reject(new Error(`Failed to process ${file.name}`))
+      // In production, we'll upload the file to the server
+      if (import.meta.env.PROD) {
+        const formData = new FormData()
+        formData.append('photo', file)
+        
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
+        const response = await fetch(`${API_BASE}/upload`, {
+          method: 'POST',
+          body: formData
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to upload photo')
         }
-        reader.readAsDataURL(file)
-      })
+        
+        const result = await response.json()
+        logForm.value.photos.push(result.url)
+      } 
+      // In development, use base64
+      else {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = (e) => {
+            console.error('FileReader error:', e)
+            reject(new Error(`Failed to process ${file.name}`))
+          }
+          reader.readAsDataURL(file)
+        })
+        logForm.value.photos.push(base64)
+      }
       
-      logForm.value.photos.push(base64)
       console.log('Successfully processed image:', file.name, 'Size:', file.size, 'bytes')
     } catch (error) {
       console.error('Error processing file:', file.name, error)
@@ -266,10 +286,28 @@ const handlePhotoUpload = async (event: Event) => {
 
 // Add photo from URL
 const addPhotoUrl = () => {
-  if (photoUrlInput.value.trim()) {
-    logForm.value.photos.push(photoUrlInput.value.trim())
-    photoUrlInput.value = ''
+  const url = photoUrlInput.value.trim()
+  if (!url) return
+  
+  if (logForm.value.photos.length >= 5) {
+    errorMessage.value = 'Maximum 5 photos allowed'
+    return
   }
+  
+  // Handle the URL based on environment
+  let finalUrl = url
+  
+  // If it's a relative URL in production, make it absolute
+  if (import.meta.env.PROD && url.startsWith('/')) {
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
+    const baseUrl = API_BASE.startsWith('http') ? 
+      new URL(API_BASE).origin : 
+      window.location.origin
+    finalUrl = `${baseUrl}${url}`
+  }
+  
+  logForm.value.photos.push(finalUrl)
+  photoUrlInput.value = ''
 }
 
 // Remove photo
