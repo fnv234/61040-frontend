@@ -403,18 +403,33 @@ const loadLogs = async () => {
     const response = await experienceLogAPI.getUserLogs(userId)
     if (response.logs) {
       // Enrich logs with place names and handle photos
+      console.log('Raw logs from API:', response.logs);
       const enrichedLogs = await Promise.all(
         response.logs.map(async (log: any) => {
           try {
-            const placeDetail = await placeDirectoryAPI.getDetails(log.placeId)
+            const placeDetail = await placeDirectoryAPI.getDetails(log.placeId);
             
-            // Convert the single photo field to an array for consistent handling
-            const photos = log.photo ? [log.photo] : [];
+            // Handle both photo (single) and photos (array) fields from the API
+            let photos: string[] = [];
+            if (Array.isArray(log.photos) && log.photos.length > 0) {
+              // If we have a photos array, use it
+              photos = log.photos.filter((p: string) => p);
+            } else if (log.photo) {
+              // Fall back to single photo field if available
+              photos = [log.photo];
+            }
+            
+            console.log(`Processing log ${log._id}:`, {
+              originalLog: log,
+              placeName: placeDetail?.place?.name,
+              photoCount: photos.length,
+              firstPhoto: photos[0]?.substring(0, 30) + '...'
+            });
             
             return {
               ...log,
-              placeName: placeDetail.place.name,
-              photos: photos, // This will be an array with 0 or 1 items
+              placeName: placeDetail?.place?.name || 'Unknown Place',
+              photos: photos,
               // Ensure we have the placeId for navigation
               placeId: log.placeId
             }
@@ -518,12 +533,9 @@ watch(() => userStore.userId, (newUserId: string | null, oldUserId: string | nul
 
 // Helper to normalize photo URLs (absolute, data:, or backend-relative)
 const getPhotoUrl = (photo: string) => {
-  console.log('Processing photo URL:', {
-    original: photo,
-    startsWithData: photo?.startsWith('data:'),
-    startsWithHttp: photo?.startsWith('http'),
-    startsWithSlash: photo?.startsWith('/')
-  });
+  console.log('=== DEBUG: getPhotoUrl called ===');
+  console.log('Original photo string:', photo);
+  console.log('Current window.location:', window.location.href);
   
   if (!photo) {
     console.warn('Empty photo URL provided');
@@ -553,6 +565,8 @@ const getPhotoUrl = (photo: string) => {
     
     // Handle API-relative URLs
     const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+    console.log('Environment VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+    
     const baseOrigin = API_BASE.startsWith('http') ? 
       new URL(API_BASE).origin : 
       window.location.origin;
@@ -562,13 +576,24 @@ const getPhotoUrl = (photo: string) => {
     const normalizedPath = photo.startsWith(basePath) ? photo : `${basePath}${photo}`;
     const finalUrl = `${baseOrigin}${normalizedPath}`;
     
-    console.log('Constructed URL from relative path:', {
-      API_BASE,
-      baseOrigin,
-      basePath,
-      normalizedPath,
-      finalUrl
+    console.log('URL Construction Details:', {
+      'Environment VITE_API_BASE_URL': import.meta.env.VITE_API_BASE_URL,
+      'Using API_BASE': API_BASE,
+      'baseOrigin': baseOrigin,
+      'basePath': basePath,
+      'normalizedPath': normalizedPath,
+      'Final URL': finalUrl
     });
+    
+    // Try a fallback if the constructed URL doesn't work
+    const fallbackUrl = `${window.location.origin}${photo}`;
+    console.log('Fallback URL (direct from location.origin):', fallbackUrl);
+    
+    // Return the constructed URL but log a warning if it might be invalid
+    if (!API_BASE) {
+      console.warn('VITE_API_BASE_URL is not set. Using fallback URL.');
+      return fallbackUrl;
+    }
     
     return finalUrl;
   }
