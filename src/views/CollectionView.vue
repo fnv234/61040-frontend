@@ -149,16 +149,30 @@
           :key="log._id"
           class="bg-white rounded-lg shadow-md p-6 hover-lift stagger-item"
         >
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <h3 class="text-lg font-semibold text-dark-green">{{ log.placeName }}</h3>
-              <p class="text-sm text-gray-500">{{ formatDate(log.timestamp) }}</p>
+          <div class="flex flex-col sm:flex-row gap-4">
+            <!-- Photo section -->
+            <div v-if="log.photos && log.photos.length > 0" class="w-full sm:w-32 flex-shrink-0">
+              <img 
+                :src="getPhotoUrl(log.photos[0])" 
+                :alt="`Photo of ${log.placeName}`" 
+                class="w-full h-32 object-cover rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
+                @error="(e) => handleImageError(e, log.photos[0])"
+                loading="lazy"
+              />
             </div>
-            <div class="flex items-center">
-              <span class="text-yellow-500 mr-1">★</span>
-              <span class="font-medium">{{ log.rating }}/5</span>
-            </div>
-          </div>
+            
+            <!-- Content section -->
+            <div class="flex-1">
+              <div class="flex justify-between items-start mb-3">
+                <div>
+                  <h3 class="text-lg font-semibold text-dark-green">{{ log.placeName }}</h3>
+                  <p class="text-sm text-gray-500">{{ formatDate(log.timestamp) }}</p>
+                </div>
+                <div class="flex items-center">
+                  <span class="text-yellow-500 mr-1">★</span>
+                  <span class="font-medium">{{ log.rating }}/5</span>
+                </div>
+              </div>
 
           <div class="grid grid-cols-2 gap-4 mb-3">
             <div>
@@ -188,24 +202,39 @@
           </div>
 
           <p v-if="log.notes" class="text-sm text-gray-700 mb-3">{{ log.notes }}</p>
-
-          <div v-if="log.photos && log.photos.length > 0" class="flex gap-2">
-            <img
-              v-for="(photo, index) in log.photos"
-              :key="index"
-              :src="getPhotoUrl(photo)"
-              :alt="`Log photo ${index + 1}`"
-              class="w-20 h-20 object-cover rounded-md"
-              @error="handleImageError"
-            />
+          
+          <!-- Additional photos (excluding the first one shown in the main content) -->
+          <div v-if="log.photos && log.photos.length > 1" class="flex flex-wrap gap-2 my-2">
+            <div v-for="(photo, index) in log.photos.slice(1)" :key="index" class="relative group">
+              <img
+                :src="getPhotoUrl(photo)"
+                :alt="`Log photo ${index + 2}`"
+                class="w-16 h-16 object-cover rounded-md border border-gray-200 hover:shadow-md transition-shadow"
+                @error="(e) => handleImageError(e, photo)"
+                loading="lazy"
+              />
+              <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <button 
+                  @click.stop="viewFullImage(getPhotoUrl(photo))"
+                  class="text-white bg-black bg-opacity-50 rounded-full p-1 hover:bg-opacity-70 transition-all"
+                  title="View full size"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m0 0l3-3m-3 3L7 10" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
 
-          <button
-            @click="deleteLog(log._id)"
-            class="mt-3 px-4 py-2 text-sm bg-cherry-blossom text-brown rounded-lg hover:bg-darker-light-pink font-medium transition-all hover-grow"
-          >
-            🗑️ Delete Log
-          </button>
+              <button
+                @click="deleteLog(log._id)"
+                class="mt-3 px-4 py-2 text-sm bg-cherry-blossom text-brown rounded-lg hover:bg-darker-light-pink font-medium transition-all hover-grow"
+              >
+                🗑️ Delete Log
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -231,14 +260,22 @@ const filterRating = ref('')
 const savedPlaces = ref<any[]>([])
 const logs = ref<any[]>([])
 
-const handleImageError = (event: Event | string) => {
+const handleImageError = (event: Event | string, photoUrl?: string) => {
   if (event instanceof Event) {
     const target = event.target as HTMLImageElement;
-    console.error('Image failed to load:', target.src);
+    console.error('Image failed to load:', {
+      src: target.src,
+      originalUrl: photoUrl,
+      isDataUrl: photoUrl?.startsWith('data:')
+    });
     target.style.display = 'none'; // Hide broken images
   } else {
     console.error('Image failed to load:', event);
   }
+}
+
+const viewFullImage = (imageUrl: string) => {
+  window.open(imageUrl, '_blank');
 }
 
 // Filtered saved places
@@ -365,17 +402,19 @@ const loadLogs = async () => {
     
     const response = await experienceLogAPI.getUserLogs(userId)
     if (response.logs) {
-      // Enrich logs with place names
+      // Enrich logs with place names and handle photos
       const enrichedLogs = await Promise.all(
         response.logs.map(async (log: any) => {
           try {
             const placeDetail = await placeDirectoryAPI.getDetails(log.placeId)
+            
+            // Convert the single photo field to an array for consistent handling
+            const photos = log.photo ? [log.photo] : [];
+            
             return {
               ...log,
               placeName: placeDetail.place.name,
-              // Handle both photo (single) and photos (array) fields
-              photos: Array.isArray(log.photos) ? log.photos : 
-                    (log.photo ? [log.photo] : []),
+              photos: photos, // This will be an array with 0 or 1 items
               // Ensure we have the placeId for navigation
               placeId: log.placeId
             }
@@ -479,17 +518,62 @@ watch(() => userStore.userId, (newUserId: string | null, oldUserId: string | nul
 
 // Helper to normalize photo URLs (absolute, data:, or backend-relative)
 const getPhotoUrl = (photo: string) => {
-  if (photo && (photo.startsWith('http://') || photo.startsWith('https://'))) {
-    return photo
+  console.log('Processing photo URL:', {
+    original: photo,
+    startsWithData: photo?.startsWith('data:'),
+    startsWithHttp: photo?.startsWith('http'),
+    startsWithSlash: photo?.startsWith('/')
+  });
+  
+  if (!photo) {
+    console.warn('Empty photo URL provided');
+    return '';
   }
-  if (photo && photo.startsWith('data:')) {
-    return photo
+  
+  // Handle base64 encoded images
+  if (photo.startsWith('data:image')) {
+    console.log('Returning base64 image data');
+    return photo;
   }
-  if (photo && photo.startsWith('/')) {
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
-    const baseOrigin = API_BASE.startsWith('http') ? new URL(API_BASE).origin : window.location.origin
-    return `${baseOrigin}${photo}`
+  
+  // Handle absolute URLs
+  if (photo.startsWith('http://') || photo.startsWith('https://')) {
+    console.log('Returning absolute URL:', photo);
+    return photo;
   }
-  return photo || ''
-}
+  
+  // Handle relative URLs
+  if (photo.startsWith('/')) {
+    // If it's already a full URL but missing protocol
+    if (photo.startsWith('//')) {
+      const url = window.location.protocol + photo;
+      console.log('Returning protocol-relative URL:', url);
+      return url;
+    }
+    
+    // Handle API-relative URLs
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+    const baseOrigin = API_BASE.startsWith('http') ? 
+      new URL(API_BASE).origin : 
+      window.location.origin;
+      
+    // Ensure we don't double up on the base path
+    const basePath = API_BASE.replace(/^https?:\/\/[^/]+/, '');
+    const normalizedPath = photo.startsWith(basePath) ? photo : `${basePath}${photo}`;
+    const finalUrl = `${baseOrigin}${normalizedPath}`;
+    
+    console.log('Constructed URL from relative path:', {
+      API_BASE,
+      baseOrigin,
+      basePath,
+      normalizedPath,
+      finalUrl
+    });
+    
+    return finalUrl;
+  }
+  
+  console.log('Returning photo as-is (unknown format):', photo);
+  return photo;
+};
 </script>

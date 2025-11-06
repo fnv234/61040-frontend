@@ -229,20 +229,38 @@ const handlePhotoUpload = async (event: Event) => {
   const files = target.files
   
   if (!files || files.length === 0) return
-
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i]
-    
-    // Convert image to base64 data URL
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string
-      logForm.value.photos.push(dataUrl)
-    }
-    reader.readAsDataURL(file)
+  
+  // Limit to 5 photos max
+  const remainingSlots = 5 - logForm.value.photos.length
+  if (remainingSlots <= 0) {
+    errorMessage.value = 'Maximum 5 photos allowed'
+    return
   }
   
-  // Reset input
+  const filesToProcess = Array.from(files).slice(0, remainingSlots)
+  
+  for (const file of filesToProcess) {
+    try {
+      // Convert file to base64 for storage
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = (e) => {
+          console.error('FileReader error:', e)
+          reject(new Error(`Failed to process ${file.name}`))
+        }
+        reader.readAsDataURL(file)
+      })
+      
+      logForm.value.photos.push(base64)
+      console.log('Successfully processed image:', file.name, 'Size:', file.size, 'bytes')
+    } catch (error) {
+      console.error('Error processing file:', file.name, error)
+      errorMessage.value = `Error: Could not process ${file.name}. Please try another image.`
+    }
+  }
+  
+  // Reset the input to allow selecting the same file again
   target.value = ''
 }
 
@@ -276,8 +294,8 @@ const submitLog = async () => {
       throw new Error('Place ID is required')
     }
     
-    // Use first photo only (API accepts single photo)
-    const photo = logForm.value.photos.length > 0 ? logForm.value.photos[0] : undefined
+    // Take the first photo from the array (API only supports single photo)
+    const photo = logForm.value.photos[0] || undefined;
 
     console.log('LogEntryView: Submitting log with data:', {
       userId,
