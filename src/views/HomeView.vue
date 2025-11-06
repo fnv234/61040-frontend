@@ -4,9 +4,10 @@
       <!-- Cute matcha image -->
       <div class="mb-6 flex justify-center">
         <img 
-          :src="matchaImage" 
-          alt="Matcha" 
+          src="/src/assets/pics/matchaice.jpeg" 
+          alt="" 
           class="w-48 h-48 object-cover rounded-full shadow-lg hover-lift"
+          onerror="this.style.display='none'"
         />
       </div>
       <h1 class="text-5xl font-decorative text-matcha-600 mb-4">
