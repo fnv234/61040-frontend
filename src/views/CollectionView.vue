@@ -415,6 +415,7 @@ const loadLogs = async () => {
               ...log,
               placeName: placeDetail.place.name,
               photos: photos, // This will be an array with 0 or 1 items
+              notes: log.notes || '', // Ensure notes is always defined
               // Ensure we have the placeId for navigation
               placeId: log.placeId
             }
@@ -423,7 +424,8 @@ const loadLogs = async () => {
               ...log,
               placeName: 'Unknown Place',
               photos: Array.isArray(log.photos) ? log.photos : 
-                    (log.photo ? [log.photo] : [])
+                    (log.photo ? [log.photo] : []),
+              notes: log.notes || ''
             }
           }
         })
