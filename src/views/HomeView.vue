@@ -570,8 +570,17 @@ const loadRecommendations = async () => {
     // Get recommendations from backend
     const response = await recommendationEngineAPI.getRecommendations(userStore.userId)
     if (response.recommendations && response.recommendations.length > 0) {
+      console.log(`HomeView: Got ${response.recommendations.length} recommendations from backend`)
+      
       const recDetailsPromises = response.recommendations.slice(0, 3).map(async placeId => {
         const placeDetail = await placeDirectoryAPI.getDetails(placeId)
+        
+        // Calculate distance from user if location available
+        if (userLocation.value) {
+          const distance = calculateDistance(userLocation.value, placeDetail.place.coordinates)
+          placeDetail.place.distance = distance
+          console.log(`HomeView: Recommendation ${placeDetail.place.name} is ${distance.toFixed(1)}km away`)
+        }
         
         // Fetch logs to calculate average rating and sweetness
         try {
@@ -602,9 +611,25 @@ const loadRecommendations = async () => {
         return placeDetail
       })
       const recDetails = await Promise.all(recDetailsPromises)
-      recommendedPlaces.value = recDetails.map(detail => detail.place)
+      
+      // Filter recommendations by distance (max 50km)
+      let filteredRecs = recDetails.map(detail => detail.place)
+      if (userLocation.value) {
+        filteredRecs = filteredRecs.filter(place => {
+          const distance = place.distance || calculateDistance(userLocation.value, place.coordinates)
+          if (distance > 50) {
+            console.warn(`HomeView: Filtering out ${place.name} - too far (${distance.toFixed(1)}km)`)
+            return false
+          }
+          return true
+        })
+        console.log(`HomeView: Filtered to ${filteredRecs.length} recommendations within 50km`)
+      }
+      
+      recommendedPlaces.value = filteredRecs.length > 0 ? filteredRecs : nearbyPlaces.value.slice(0, 3)
     } else {
-      // Fallback: show random places with calculated ratings and sweetness
+      console.log('HomeView: No recommendations from backend, using nearby places fallback')
+      // Fallback: show nearby places (already filtered to 50km) with calculated ratings and sweetness
       const placesWithStats = await Promise.all(nearbyPlaces.value.slice(0, 3).map(async place => {
         try {
           const logsResponse = await experienceLogAPI.getPlaceLogs(userStore.userId, place._id)
@@ -623,6 +648,7 @@ const loadRecommendations = async () => {
     }
   } catch (error) {
     console.error('Error loading recommendations:', error)
+    // Fallback to nearby places (already filtered to 50km)
     recommendedPlaces.value = nearbyPlaces.value.slice(0, 3)
   } finally {
     loadingRecommendations.value = false

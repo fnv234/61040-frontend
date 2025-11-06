@@ -212,6 +212,19 @@ const loadSavedPlaces = async () => {
   }
 }
 
+// Helper function to calculate distance between two coordinates (Haversine formula)
+const calculateDistance = (coord1, coord2) => {
+  const R = 6371 // Earth's radius in km
+  const dLat = (coord2[1] - coord1[1]) * Math.PI / 180
+  const dLon = (coord2[0] - coord1[0]) * Math.PI / 180
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(coord1[1] * Math.PI / 180) * Math.cos(coord2[1] * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+  return R * c
+}
+
 const loadRecommendations = async () => {
   if (!userStore.isLoggedIn) {
     console.warn('ProfileView: User not logged in')
@@ -224,13 +237,19 @@ const loadRecommendations = async () => {
     const result = await recommendationEngineAPI.getRecommendations(userStore.userId)
     console.log('ProfileView: getRecommendations result:', result)
     
+    // Default location (Boston) - in future, get from user preferences or browser
+    const userLocation = [-71.0942, 42.3601]
+    const maxDistance = 50 // 50km max
+    
     if (result.recommendations && result.recommendations.length > 0) {
-      // Limit to top 8 recommendations
-      const topRecommendations = result.recommendations.slice(0, 8)
-      console.log(`ProfileView: Fetching details for ${topRecommendations.length} recommendations (limited from ${result.recommendations.length})`)
-      const placeDetailsPromises = topRecommendations.map(async (placeId) => {
+      console.log(`ProfileView: Got ${result.recommendations.length} recommendations from backend`)
+      
+      const placeDetailsPromises = result.recommendations.map(async (placeId) => {
         try {
           const detail = await placeDirectoryAPI.getDetails(placeId)
+          // Calculate distance
+          const distance = calculateDistance(userLocation, detail.place.coordinates)
+          detail.place.distance = distance
           return detail
         } catch (err) {
           console.error('ProfileView: Failed to fetch recommendation details for placeId:', placeId, err)
@@ -238,9 +257,22 @@ const loadRecommendations = async () => {
         }
       })
       const placeDetails = await Promise.all(placeDetailsPromises)
-      const validPlaces = placeDetails.filter(detail => detail !== null).map(detail => detail.place)
-      recommendations.value = validPlaces
-      console.log('ProfileView: Loaded', recommendations.value.length, 'recommendations')
+      
+      // Filter by distance and remove nulls
+      const validPlaces = placeDetails
+        .filter(detail => detail !== null)
+        .map(detail => detail.place)
+        .filter(place => {
+          if (place.distance > maxDistance) {
+            console.warn(`ProfileView: Filtering out ${place.name} - too far (${place.distance.toFixed(1)}km)`)
+            return false
+          }
+          return true
+        })
+      
+      // Limit to top 8 after filtering
+      recommendations.value = validPlaces.slice(0, 8)
+      console.log(`ProfileView: Loaded ${recommendations.value.length} recommendations within ${maxDistance}km`)
     } else {
       // Fallback: Show some nearby places if no recommendations
       console.log('ProfileView: No recommendations from backend, showing nearby places as fallback')
