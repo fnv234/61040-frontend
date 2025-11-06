@@ -156,13 +156,27 @@ import {
   experienceLogAPI
 } from '@/services/api'
 
+// Define Place interface
+interface Place {
+  _id: string
+  name: string
+  address: string
+  coordinates: [number, number]
+  distance?: number
+  avgRating?: number
+  avgSweetness?: number
+  avgStrength?: number
+  photos?: string[]
+  preparationStyles?: string[]
+}
+
 const userStore = useUserStore()
-const savedPlaces = ref([])
-const recommendations = ref([])
-const profileSummary = ref('')
-const loadingSaved = ref(false)
-const loadingRecs = ref(false)
-const loadingSummary = ref(false)
+const savedPlaces = ref<Place[]>([])
+const recommendations = ref<Place[]>([])
+const profileSummary = ref<string>('')
+const loadingSaved = ref<boolean>(false)
+const loadingRecs = ref<boolean>(false)
+const loadingSummary = ref<boolean>(false)
 
 // Location and distance helpers
 const userLocation = ref<[number, number] | null>(null)
@@ -213,7 +227,7 @@ const loadSavedPlaces = async () => {
   loadingSaved.value = true
   try {
     console.log('ProfileView: Loading saved places for userId:', userStore.userId)
-    const result = await userDirectoryAPI.getSavedPlaces(userStore.userId)
+    const result = await userDirectoryAPI.getSavedPlaces(userStore.userId!)
     console.log('ProfileView: getSavedPlaces result:', result)
     
     if (result.places && result.places.length > 0) {
@@ -259,7 +273,7 @@ const loadRecommendations = async () => {
   loadingRecs.value = true
   try {
     console.log('ProfileView: Loading recommendations for userId:', userStore.userId)
-    const result = await recommendationEngineAPI.getRecommendations(userStore.userId)
+    const result = await recommendationEngineAPI.getRecommendations(userStore.userId!)
     console.log('ProfileView: getRecommendations result:', result)
     
     if (result.recommendations && result.recommendations.length > 0) {
@@ -422,7 +436,7 @@ const generateSummary = async () => {
     if (uuids && uuids.length > 0) {
       // Fetch place names for all UUIDs found
       const uniqueUuids = [...new Set(uuids)]
-      const placeNameMap = {}
+      const placeNameMap: Record<string, string> = {}
       
       try {
         await Promise.all(uniqueUuids.map(async (uuid) => {
@@ -463,7 +477,7 @@ const generateSummary = async () => {
     localStorage.setItem(`${SUMMARY_METADATA_KEY}_${userId}`, JSON.stringify(metadata))
     
   } catch (err) {
-    alert('Error: ' + err.message)
+    alert('Error: ' + (err instanceof Error ? err.message : String(err)))
   } finally {
     loadingSummary.value = false
   }

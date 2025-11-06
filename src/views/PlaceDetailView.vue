@@ -160,6 +160,17 @@
                 </div>
               </div>
               
+              <!-- Log Photo -->
+              <div v-if="log.photo" class="mb-3">
+                <img
+                  :src="getPhotoUrl(log.photo)"
+                  :alt="'Experience photo'"
+                  class="w-full max-w-sm h-48 object-cover rounded-lg"
+                  @error="(e) => handleImageError(e, log.photo)"
+                  loading="lazy"
+                />
+              </div>
+              
               <p v-if="log.notes" class="text-sm text-gray-700 mb-2">{{ log.notes }}</p>
               
               <div class="flex gap-4 text-xs text-gray-500">
@@ -278,6 +289,27 @@ const loadPlaceLogs = async () => {
       averageRating.value = totalRating / response.logs.length
       averageSweetness.value = totalSweetness / response.logs.length
       averageStrength.value = totalStrength / response.logs.length
+      
+      // Merge log photos into place photos gallery
+      if (place.value) {
+        const logPhotos = response.logs
+          .filter(log => log.photo)
+          .map(log => log.photo)
+        
+        // Initialize photos array if it doesn't exist
+        if (!place.value.photos) {
+          place.value.photos = []
+        }
+        
+        // Add log photos that aren't already in the gallery
+        logPhotos.forEach(photo => {
+          if (!place.value.photos.includes(photo)) {
+            place.value.photos.push(photo)
+          }
+        })
+        
+        console.log('PlaceDetailView: Merged log photos into gallery. Total photos:', place.value.photos.length)
+      }
     }
   } catch (err) {
     console.error('Error loading place logs:', err)
