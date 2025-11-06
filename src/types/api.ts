@@ -21,6 +21,7 @@ export interface Place {
   priceRange: string
   hours?: string
   photos: string[]
+  distance?: number // Distance in km from user location (computed client-side)
 }
 
 export interface User {
