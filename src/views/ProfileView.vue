@@ -143,7 +143,7 @@
         </div>
         <div v-else-if="savedPlaces.length === 0" class="text-center py-8">
           <img 
-            src="/src/assets/pics/matchavertical.jpeg" 
+            :src="matchaImage" 
             alt="Matcha" 
             class="w-32 h-32 object-cover rounded-full mx-auto mb-4 shadow-md animate-float"
           />
@@ -206,7 +206,7 @@
         </div>
         <div v-else-if="recommendations.length === 0" class="text-center py-8">
           <img 
-            src="/src/assets/pics/matchavertical.jpeg" 
+            :src="matchaImage" 
             alt="Matcha" 
             class="w-32 h-32 object-cover rounded-full mx-auto mb-4 shadow-md animate-bounce-gentle"
           />
@@ -276,7 +276,7 @@
         </div>
         <div v-else class="text-center py-8">
           <img 
-            src="/src/assets/pics/matchavertical.jpeg" 
+            :src="matchaImage" 
             alt="Matcha" 
             class="w-32 h-32 object-cover rounded-full mx-auto mb-4 shadow-md animate-pulse-soft"
           />

@@ -294,31 +294,28 @@ const submitLog = async () => {
       throw new Error('Place ID is required')
     }
     
-    // Get the first photo from the array
-    const photo = logForm.value.photos[0];
-    
-    // Prepare the log data
-    const logData: any = {
+    // Take the first photo from the array (API only supports single photo)
+    const photo = logForm.value.photos[0] || undefined;
+
+    console.log('LogEntryView: Submitting log with data:', {
+      userId,
+      placeId,
+      rating: logForm.value.rating,
+      sweetness: logForm.value.sweetness,
+      strength: logForm.value.strength,
+      hasPhoto: !!photo,
+      hasNotes: !!logForm.value.notes
+    })
+
+    const logData = {
       userId,
       placeId,
       rating: logForm.value.rating,
       sweetness: logForm.value.sweetness,
       strength: logForm.value.strength,
       notes: logForm.value.notes || undefined,
-    };
-    
-    // Only add photo to the request if it exists
-    if (photo) {
-      logData.photo = photo;
+      photo
     }
-    
-    console.log('LogEntryView: Submitting log with data:', {
-      ...logData,
-      hasPhoto: !!photo,
-      photoType: photo ? typeof photo : 'none',
-      photoLength: photo ? photo.length : 0,
-      photoStartsWith: photo ? photo.substring(0, 30) + '...' : 'none'
-    });
 
     console.log('LogEntryView: Calling createLog API...')
     const result = await experienceLogAPI.createLog(logData)

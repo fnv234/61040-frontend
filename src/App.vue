@@ -3,12 +3,12 @@
     <!-- Decorative background elements -->
     <div class="fixed inset-0 pointer-events-none opacity-5 z-0">
       <img 
-        src="/src/assets/pics/matchavertical.jpeg" 
+        :src="matchaImage" 
         alt="Background" 
         class="absolute top-10 right-10 w-64 h-64 object-cover rounded-full blur-3xl"
       />
       <img 
-        src="/src/assets/pics/matchavertical.jpeg" 
+        :src="matchaImage" 
         alt="Background" 
         class="absolute bottom-20 left-10 w-64 h-64 object-cover rounded-full blur-3xl"
       />
