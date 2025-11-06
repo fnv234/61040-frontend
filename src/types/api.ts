@@ -83,6 +83,7 @@ export interface RefreshRecommendationsRequest {
   savedPlaces: string[]
   preferences: Record<string, any>
   triedPlaces: string[]
+  allAvailablePlaces?: string[]
 }
 
 // Response types

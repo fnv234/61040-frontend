@@ -146,7 +146,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import {
@@ -163,6 +163,42 @@ const profileSummary = ref('')
 const loadingSaved = ref(false)
 const loadingRecs = ref(false)
 const loadingSummary = ref(false)
+
+// Location and distance helpers
+const userLocation = ref<[number, number] | null>(null)
+const getUserLocation = () => {
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        userLocation.value = [position.coords.longitude, position.coords.latitude]
+        // Optionally refresh recommendations when location becomes available
+        if (userStore.isLoggedIn) {
+          loadRecommendations()
+        }
+      },
+      () => {
+        // Default to Boston/Cambridge
+        userLocation.value = [-71.0942, 42.3601]
+        if (userStore.isLoggedIn) {
+          loadRecommendations()
+        }
+      }
+    )
+  } else {
+    userLocation.value = [-71.0942, 42.3601]
+  }
+}
+
+const calculateDistance = (coords1: [number, number], coords2: [number, number]) => {
+  const [lon1, lat1] = coords1
+  const [lon2, lat2] = coords2
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
 
 // Cache keys for profile summary
 const SUMMARY_CACHE_KEY = 'matcha_profile_summary'
@@ -212,18 +248,7 @@ const loadSavedPlaces = async () => {
   }
 }
 
-// Helper function to calculate distance between two coordinates (Haversine formula)
-const calculateDistance = (coord1, coord2) => {
-  const R = 6371 // Earth's radius in km
-  const dLat = (coord2[1] - coord1[1]) * Math.PI / 180
-  const dLon = (coord2[0] - coord1[0]) * Math.PI / 180
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(coord1[1] * Math.PI / 180) * Math.cos(coord2[1] * Math.PI / 180) *
-    Math.sin(dLon/2) * Math.sin(dLon/2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-  return R * c
-}
+ 
 
 const loadRecommendations = async () => {
   if (!userStore.isLoggedIn) {
@@ -237,19 +262,18 @@ const loadRecommendations = async () => {
     const result = await recommendationEngineAPI.getRecommendations(userStore.userId)
     console.log('ProfileView: getRecommendations result:', result)
     
-    // Default location (Boston) - in future, get from user preferences or browser
-    const userLocation = [-71.0942, 42.3601]
-    const maxDistance = 50 // 50km max
-    
     if (result.recommendations && result.recommendations.length > 0) {
-      console.log(`ProfileView: Got ${result.recommendations.length} recommendations from backend`)
-      
-      const placeDetailsPromises = result.recommendations.map(async (placeId) => {
+      // Limit to top 8 recommendations
+      const topRecommendations = result.recommendations.slice(0, 8)
+      console.log(`ProfileView: Fetching details for ${topRecommendations.length} recommendations (limited from ${result.recommendations.length})`)
+      const placeDetailsPromises = topRecommendations.map(async (placeId) => {
         try {
           const detail = await placeDirectoryAPI.getDetails(placeId)
-          // Calculate distance
-          const distance = calculateDistance(userLocation, detail.place.coordinates)
-          detail.place.distance = distance
+          // Annotate with distance if we have location
+          if (userLocation.value) {
+            const distance = calculateDistance(userLocation.value, detail.place.coordinates)
+            detail.place.distance = distance
+          }
           return detail
         } catch (err) {
           console.error('ProfileView: Failed to fetch recommendation details for placeId:', placeId, err)
@@ -257,43 +281,47 @@ const loadRecommendations = async () => {
         }
       })
       const placeDetails = await Promise.all(placeDetailsPromises)
-      
-      // Filter by distance and remove nulls
-      const validPlaces = placeDetails
-        .filter(detail => detail !== null)
-        .map(detail => detail.place)
-        .filter(place => {
-          if (place.distance > maxDistance) {
-            console.warn(`ProfileView: Filtering out ${place.name} - too far (${place.distance.toFixed(1)}km)`)
-            return false
-          }
-          return true
+      let validPlaces = placeDetails.filter(detail => detail !== null).map(detail => detail.place)
+      // Filter to within 50km if we know location
+      if (userLocation.value) {
+        validPlaces = validPlaces.filter(place => {
+          const d = place.distance ?? calculateDistance(userLocation.value as [number, number], place.coordinates)
+          return d <= 50
         })
-      
-      // Limit to top 8 after filtering
-      recommendations.value = validPlaces.slice(0, 8)
-      console.log(`ProfileView: Loaded ${recommendations.value.length} recommendations within ${maxDistance}km`)
+      }
+      recommendations.value = validPlaces
+      console.log('ProfileView: Loaded', recommendations.value.length, 'recommendations')
     } else {
       // Fallback: Show some nearby places if no recommendations
       console.log('ProfileView: No recommendations from backend, showing nearby places as fallback')
-      const nearbyResult = await placeDirectoryAPI.findNearby([-71.0942, 42.3601], 50000)
+      const coords = userLocation.value ?? [-71.0942, 42.3601]
+      const nearbyResult = await placeDirectoryAPI.findNearby(coords, 50000)
       if (nearbyResult.placeIds && nearbyResult.placeIds.length > 0) {
         const placeDetails = await Promise.all(
           nearbyResult.placeIds.slice(0, 5).map(placeId => placeDirectoryAPI.getDetails(placeId))
         )
-        recommendations.value = placeDetails.map(detail => detail.place)
+        let places = placeDetails.map(detail => detail.place)
+        if (userLocation.value) {
+          places = places.filter(p => calculateDistance(userLocation.value as [number, number], p.coordinates) <= 50)
+        }
+        recommendations.value = places
       }
     }
   } catch (err) {
     console.error('Error loading recommendations:', err)
     // Even on error, try to show some places
     try {
-      const nearbyResult = await placeDirectoryAPI.findNearby([-71.0942, 42.3601], 50000)
+      const coords = userLocation.value ?? [-71.0942, 42.3601]
+      const nearbyResult = await placeDirectoryAPI.findNearby(coords, 50000)
       if (nearbyResult.placeIds && nearbyResult.placeIds.length > 0) {
         const placeDetails = await Promise.all(
           nearbyResult.placeIds.slice(0, 5).map(placeId => placeDirectoryAPI.getDetails(placeId))
         )
-        recommendations.value = placeDetails.map(detail => detail.place)
+        let places = placeDetails.map(detail => detail.place)
+        if (userLocation.value) {
+          places = places.filter(p => calculateDistance(userLocation.value as [number, number], p.coordinates) <= 50)
+        }
+        recommendations.value = places
       }
     } catch (fallbackErr) {
       console.error('Error loading fallback places:', fallbackErr)
@@ -321,12 +349,16 @@ const refreshRecommendations = async () => {
     // Get user's saved places and tried places
     const savedResult = await userDirectoryAPI.getSavedPlaces(userId)
     const triedResult = await experienceLogAPI.getTriedPlaces(userId)
-    
+    // Constrain the backend computation to nearby places based on location
+    const coords = userLocation.value ?? [-71.0942, 42.3601]
+    const nearby = await placeDirectoryAPI.findNearby(coords, 50000)
+
     await recommendationEngineAPI.refreshRecommendations({
       userId,
       savedPlaces: savedResult.places || [],
       preferences: {},
-      triedPlaces: triedResult.places || []
+      triedPlaces: triedResult.places || [],
+      allAvailablePlaces: nearby.placeIds || []
     })
     
     await loadRecommendations()
@@ -437,9 +469,22 @@ const generateSummary = async () => {
   }
 }
 
+// Load cached summary on mount
+const loadCachedSummary = () => {
+  if (!userStore.userId) return
+  
+  const cachedSummary = localStorage.getItem(`${SUMMARY_CACHE_KEY}_${userStore.userId}`)
+  if (cachedSummary) {
+    console.log('ProfileView: Loading cached summary from localStorage')
+    profileSummary.value = cachedSummary
+  }
+}
+
 onMounted(() => {
+  getUserLocation()
   loadSavedPlaces()
   loadRecommendations()
+  loadCachedSummary()
 })
 
 // React to login/sign-up: when userId becomes available, load data
@@ -447,6 +492,7 @@ watch(() => userStore.userId, (newUserId, oldUserId) => {
   if (newUserId && !oldUserId) {
     loadSavedPlaces()
     loadRecommendations()
+    loadCachedSummary()
   }
 })
 </script>
