@@ -338,7 +338,7 @@
                 :key="place._id"
                 @click="handlePlaceClick(place._id)"
                 :spotlightColor="'rgba(139, 195, 74, 0.25)'"
-                class="cursor-pointer transition-all hover:scale-[1.02]"
+                class="cursor-pointer transition-all"
               >
                 <div class="font-medium text-dark-green">{{ place.name }}</div>
                 <div class="text-sm text-gray-600">{{ place.address }}</div>
@@ -572,7 +572,8 @@ const loadRecommendations = async () => {
     if (response.recommendations && response.recommendations.length > 0) {
       console.log(`HomeView: Got ${response.recommendations.length} recommendations from backend`)
       
-      const recDetailsPromises = response.recommendations.slice(0, 3).map(async placeId => {
+      // Fetch more recommendations initially (12) so we can filter by distance and still have 4
+      const recDetailsPromises = response.recommendations.slice(0, 12).map(async placeId => {
         const placeDetail = await placeDirectoryAPI.getDetails(placeId)
         
         // Calculate distance from user if location available
@@ -612,7 +613,7 @@ const loadRecommendations = async () => {
       })
       const recDetails = await Promise.all(recDetailsPromises)
       
-      // Filter recommendations by distance (max 50km)
+      // Filter recommendations by distance (max 50km) and take top 4
       let filteredRecs = recDetails.map(detail => detail.place)
       if (userLocation.value) {
         filteredRecs = filteredRecs.filter(place => {
@@ -624,13 +625,21 @@ const loadRecommendations = async () => {
           return true
         })
         console.log(`HomeView: Filtered to ${filteredRecs.length} recommendations within 50km`)
+        
+        // Sort by distance and take top 4 closest
+        filteredRecs.sort((a, b) => (a.distance || 0) - (b.distance || 0))
+        filteredRecs = filteredRecs.slice(0, 4)
+        console.log(`HomeView: Showing top 4 closest recommendations`)
+      } else {
+        // If no location, just take first 4
+        filteredRecs = filteredRecs.slice(0, 4)
       }
       
-      recommendedPlaces.value = filteredRecs.length > 0 ? filteredRecs : nearbyPlaces.value.slice(0, 3)
+      recommendedPlaces.value = filteredRecs.length > 0 ? filteredRecs : nearbyPlaces.value.slice(0, 4)
     } else {
       console.log('HomeView: No recommendations from backend, using nearby places fallback')
       // Fallback: show nearby places (already filtered to 50km) with calculated ratings and sweetness
-      const placesWithStats = await Promise.all(nearbyPlaces.value.slice(0, 3).map(async place => {
+      const placesWithStats = await Promise.all(nearbyPlaces.value.slice(0, 4).map(async place => {
         try {
           const logsResponse = await experienceLogAPI.getPlaceLogs(userStore.userId, place._id)
           if (logsResponse.logs && logsResponse.logs.length > 0) {
@@ -649,7 +658,7 @@ const loadRecommendations = async () => {
   } catch (error) {
     console.error('Error loading recommendations:', error)
     // Fallback to nearby places (already filtered to 50km)
-    recommendedPlaces.value = nearbyPlaces.value.slice(0, 3)
+    recommendedPlaces.value = nearbyPlaces.value.slice(0, 4)
   } finally {
     loadingRecommendations.value = false
   }

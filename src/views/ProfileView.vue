@@ -51,15 +51,33 @@
           <div
             v-for="place in savedPlaces"
             :key="place._id"
-            class="flex justify-between items-center p-3 bg-gray-50 rounded-md"
+            class="flex justify-between items-center p-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
           >
-            <div>
-              <div class="font-medium">{{ place.name }}</div>
-              <div class="text-sm text-gray-500">{{ place.address }}</div>
+            <div class="flex items-center gap-3 flex-1">
+              <div
+                v-if="place.photos && place.photos.length > 0"
+                class="w-16 h-16 rounded-md overflow-hidden flex-shrink-0"
+              >
+                <img
+                  :src="getPhotoUrl(place.photos[0])"
+                  :alt="place.name"
+                  class="w-full h-full object-cover"
+                />
+              </div>
+              <div
+                v-else
+                class="w-16 h-16 rounded-md bg-matcha-100 flex items-center justify-center flex-shrink-0"
+              >
+                <span class="text-2xl">🍵</span>
+              </div>
+              <div>
+                <div class="font-medium">{{ place.name }}</div>
+                <div class="text-sm text-gray-500">{{ place.address }}</div>
+              </div>
             </div>
             <router-link
               :to="`/places/${place._id}`"
-              class="px-3 py-1 bg-brighter-green text-white rounded-lg hover:bg-matcha-green transition-all text-sm font-medium btn-cute"
+              class="px-3 py-1 bg-brighter-green text-white rounded-lg hover:bg-matcha-green transition-all text-sm font-medium btn-cute flex-shrink-0"
             >
               View →
             </router-link>
@@ -97,15 +115,36 @@
           <div
             v-for="place in recommendations"
             :key="place._id"
-            class="flex justify-between items-center p-3 bg-matcha-50 rounded-md"
+            class="flex justify-between items-center p-3 bg-matcha-50 rounded-md hover:bg-matcha-100 transition-colors"
           >
-            <div>
-              <div class="font-medium">{{ place.name }}</div>
-              <div class="text-sm text-gray-500">{{ place.address }}</div>
+            <div class="flex items-center gap-3 flex-1">
+              <div
+                v-if="place.photos && place.photos.length > 0"
+                class="w-16 h-16 rounded-md overflow-hidden flex-shrink-0"
+              >
+                <img
+                  :src="getPhotoUrl(place.photos[0])"
+                  :alt="place.name"
+                  class="w-full h-full object-cover"
+                />
+              </div>
+              <div
+                v-else
+                class="w-16 h-16 rounded-md bg-matcha-100 flex items-center justify-center flex-shrink-0"
+              >
+                <span class="text-2xl">🍵</span>
+              </div>
+              <div>
+                <div class="font-medium">{{ place.name }}</div>
+                <div class="text-sm text-gray-500">{{ place.address }}</div>
+                <div v-if="place.distance" class="text-xs text-matcha-600">
+                  📍 {{ place.distance.toFixed(1) }} km away
+                </div>
+              </div>
             </div>
             <router-link
               :to="`/places/${place._id}`"
-              class="px-3 py-1 bg-brighter-green text-white rounded-lg hover:bg-matcha-green transition-all text-sm font-medium btn-cute"
+              class="px-3 py-1 bg-brighter-green text-white rounded-lg hover:bg-matcha-green transition-all text-sm font-medium btn-cute flex-shrink-0"
             >
               View →
             </router-link>
@@ -239,6 +278,31 @@ const loadSavedPlaces = async () => {
           console.log('ProfileView: Fetching details for placeId:', placeId)
           const detail = await placeDirectoryAPI.getDetails(placeId)
           console.log('ProfileView: Got details for', detail.place.name)
+          
+          // Merge log photos into place photos
+          try {
+            const logsResponse = await experienceLogAPI.getPlaceLogs(userStore.userId!, placeId)
+            if (logsResponse.logs && logsResponse.logs.length > 0) {
+              const logPhotos = logsResponse.logs
+                .filter(log => log.photo)
+                .map(log => log.photo!)
+              
+              if (!detail.place.photos) {
+                detail.place.photos = []
+              }
+              
+              logPhotos.forEach(photo => {
+                if (!detail.place.photos!.includes(photo)) {
+                  detail.place.photos!.push(photo)
+                }
+              })
+              
+              console.log(`ProfileView: Merged ${logPhotos.length} log photos for ${detail.place.name}`)
+            }
+          } catch (logErr) {
+            console.error('ProfileView: Failed to fetch logs for place:', placeId, logErr)
+          }
+          
           return detail
         } catch (err) {
           console.error('ProfileView: Failed to fetch details for placeId:', placeId, err)
@@ -283,11 +347,35 @@ const loadRecommendations = async () => {
       const placeDetailsPromises = topRecommendations.map(async (placeId) => {
         try {
           const detail = await placeDirectoryAPI.getDetails(placeId)
+          
           // Annotate with distance if we have location
           if (userLocation.value) {
             const distance = calculateDistance(userLocation.value, detail.place.coordinates)
             detail.place.distance = distance
           }
+          
+          // Merge log photos into place photos (if user has visited this place)
+          try {
+            const logsResponse = await experienceLogAPI.getPlaceLogs(userStore.userId!, placeId)
+            if (logsResponse.logs && logsResponse.logs.length > 0) {
+              const logPhotos = logsResponse.logs
+                .filter(log => log.photo)
+                .map(log => log.photo!)
+              
+              if (!detail.place.photos) {
+                detail.place.photos = []
+              }
+              
+              logPhotos.forEach(photo => {
+                if (!detail.place.photos!.includes(photo)) {
+                  detail.place.photos!.push(photo)
+                }
+              })
+            }
+          } catch (logErr) {
+            // It's okay if this fails - user may not have visited this place yet
+          }
+          
           return detail
         } catch (err) {
           console.error('ProfileView: Failed to fetch recommendation details for placeId:', placeId, err)
@@ -509,4 +597,25 @@ watch(() => userStore.userId, (newUserId, oldUserId) => {
     loadCachedSummary()
   }
 })
+
+// Helper function to get photo URL
+const getPhotoUrl = (photo: string) => {
+  // If it's already a full URL (http/https), return as is
+  if (photo && (photo.startsWith('http://') || photo.startsWith('https://'))) {
+    return photo
+  }
+  
+  // If it's a data URL (base64), return as is
+  if (photo && photo.startsWith('data:')) {
+    return photo
+  }
+  
+  // If it's a relative path starting with /, assume it's from the backend
+  if (photo && photo.startsWith('/')) {
+    return `http://localhost:8000${photo}`
+  }
+  
+  // Otherwise, try to construct a full URL
+  return photo || ''
+}
 </script>
