@@ -147,7 +147,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import {
   userDirectoryAPI,
@@ -408,5 +408,13 @@ const generateSummary = async () => {
 onMounted(() => {
   loadSavedPlaces()
   loadRecommendations()
+})
+
+// React to login/sign-up: when userId becomes available, load data
+watch(() => userStore.userId, (newUserId, oldUserId) => {
+  if (newUserId && !oldUserId) {
+    loadSavedPlaces()
+    loadRecommendations()
+  }
 })
 </script>

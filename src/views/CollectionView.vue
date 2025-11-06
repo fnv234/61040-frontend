@@ -212,7 +212,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { userDirectoryAPI, experienceLogAPI, placeDirectoryAPI, recommendationEngineAPI } from '@/services/api'
@@ -429,5 +429,13 @@ const formatDate = (timestamp: number) => {
 onMounted(() => {
   loadSavedPlaces()
   loadLogs()
+})
+
+// React to login/sign-up: when userId becomes available, load data
+watch(() => userStore.userId, (newUserId: string | null, oldUserId: string | null) => {
+  if (newUserId && !oldUserId) {
+    loadSavedPlaces()
+    loadLogs()
+  }
 })
 </script>

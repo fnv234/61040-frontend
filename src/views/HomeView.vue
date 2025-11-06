@@ -654,6 +654,14 @@ watch(() => route.path, (newPath, oldPath) => {
   }
 })
 
+// React when the user logs in (userId becomes non-null) to load data without a page refresh
+watch(() => userStore.userId, (newUserId, oldUserId) => {
+  if (newUserId && !oldUserId) {
+    // Kick off location and subsequent loads once authenticated
+    getUserLocation()
+  }
+})
+
 // Simple auth storage (for demo - in production use secure backend auth)
 const getStoredAccounts = () => {
   const accounts = localStorage.getItem('matcha_accounts')
