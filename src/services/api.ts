@@ -2,7 +2,6 @@ import axios, { AxiosError } from 'axios'
 import type {
   CreateLogRequest,
   CreateLogResponse,
-  UpdateLogRequest,
   ExperienceLog,
   GetUserLogsResponse,
   GetPlaceLogsResponse,
@@ -72,15 +71,6 @@ export const experienceLogAPI = {
       if (axios.isAxiosError(error) && error.code === 'ECONNABORTED') {
         throw new Error('Request timeout - server took too long to respond')
       }
-      return handleError(error)
-    }
-  },
-
-  updateLog: async (data: UpdateLogRequest): Promise<{ log: ExperienceLog }> => {
-    try {
-      const response = await apiClient.post<{ log: ExperienceLog }>('/ExperienceLog/update_log', data)
-      return response.data
-    } catch (error) {
       return handleError(error)
     }
   },
