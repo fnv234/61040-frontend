@@ -204,7 +204,7 @@
           <p v-if="log.notes" class="text-sm text-gray-700 mb-3">{{ log.notes }}</p>
           
           <!-- Additional photos (excluding the first one shown in the main content) -->
-          <div v-if="log.photos && log.photos.length > 1" class="flex flex-wrap gap-2 my-2">
+          <div v-if="log.photos && log.photos.length > 1" class="flex flex-wrap gap-2 my-2 justify-start">
             <div v-for="(photo, index) in log.photos.slice(1)" :key="index" class="relative group">
               <img
                 :src="getPhotoUrl(photo)"
