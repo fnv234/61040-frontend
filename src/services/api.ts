@@ -2,7 +2,6 @@ import axios, { AxiosError } from 'axios'
 import type {
   CreateLogRequest,
   CreateLogResponse,
-  ExperienceLog,
   GetUserLogsResponse,
   GetPlaceLogsResponse,
   GetAverageRatingResponse,
