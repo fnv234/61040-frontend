@@ -43,14 +43,6 @@ export interface CreateLogRequest {
   photo?: string
 }
 
-export interface UpdateLogRequest {
-  logId: string
-  rating?: number
-  sweetness?: number
-  strength?: number
-  notes?: string
-  photo?: string
-}
 
 export interface CreatePlaceRequest {
   name: string
